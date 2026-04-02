@@ -1,0 +1,50 @@
+<?php
+
+declare(strict_types=1);
+
+namespace DoctrineMigrations;
+
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+
+final class Version20260402230000 extends AbstractMigration
+{
+    public function getDescription(): string
+    {
+        return 'Module 4 credential workflow tables and credential_files relation update';
+    }
+
+    public function up(Schema $schema): void
+    {
+        $this->addSql('CREATE TABLE IF NOT EXISTS credential_submissions (id INT AUTO_INCREMENT NOT NULL, practitioner_id INT NOT NULL, current_state VARCHAR(40) NOT NULL, created_by_id INT NOT NULL, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, INDEX IDX_CREDENTIAL_SUBMISSIONS_PRACTITIONER (practitioner_id), INDEX IDX_CREDENTIAL_SUBMISSIONS_CREATED_BY (created_by_id), PRIMARY KEY(id), CONSTRAINT FK_CREDENTIAL_SUBMISSIONS_PRACTITIONER FOREIGN KEY (practitioner_id) REFERENCES practitioners (id) ON DELETE CASCADE, CONSTRAINT FK_CREDENTIAL_SUBMISSIONS_CREATED_BY FOREIGN KEY (created_by_id) REFERENCES users (id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
+        $this->addSql('CREATE TABLE IF NOT EXISTS credential_versions (id INT AUTO_INCREMENT NOT NULL, submission_id INT NOT NULL, version_no INT NOT NULL, payload_json LONGTEXT NOT NULL, state VARCHAR(40) NOT NULL, rejection_comment LONGTEXT DEFAULT NULL, created_by_id INT NOT NULL, created_at DATETIME NOT NULL, UNIQUE INDEX UNIQ_CREDENTIAL_VERSION_NO (submission_id, version_no), INDEX IDX_CREDENTIAL_VERSIONS_CREATED_BY (created_by_id), PRIMARY KEY(id), CONSTRAINT FK_CREDENTIAL_VERSIONS_SUBMISSION FOREIGN KEY (submission_id) REFERENCES credential_submissions (id) ON DELETE CASCADE, CONSTRAINT FK_CREDENTIAL_VERSIONS_CREATED_BY FOREIGN KEY (created_by_id) REFERENCES users (id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
+
+        $this->addSql('ALTER TABLE credential_files ADD credential_version_id INT DEFAULT NULL');
+        $this->addSql('CREATE INDEX IDX_CREDENTIAL_FILES_VERSION ON credential_files (credential_version_id)');
+
+        $this->addSql("INSERT INTO credential_submissions (practitioner_id, current_state, created_by_id, created_at, updated_at) SELECT DISTINCT cf.practitioner_id, 'DRAFT', 1, NOW(), NOW() FROM credential_files cf LEFT JOIN credential_submissions cs ON cs.practitioner_id = cf.practitioner_id WHERE cf.practitioner_id IS NOT NULL AND cs.id IS NULL");
+        $this->addSql("INSERT INTO credential_versions (submission_id, version_no, payload_json, state, rejection_comment, created_by_id, created_at) SELECT cs.id, 1, '{}', cs.current_state, NULL, cs.created_by_id, NOW() FROM credential_submissions cs LEFT JOIN credential_versions cv ON cv.submission_id = cs.id AND cv.version_no = 1 WHERE cv.id IS NULL");
+        $this->addSql('UPDATE credential_files cf JOIN credential_submissions cs ON cs.practitioner_id = cf.practitioner_id JOIN credential_versions cv ON cv.submission_id = cs.id AND cv.version_no = 1 SET cf.credential_version_id = cv.id WHERE cf.credential_version_id IS NULL');
+
+        $this->addSql('ALTER TABLE credential_files MODIFY credential_version_id INT NOT NULL');
+        $this->addSql('ALTER TABLE credential_files ADD CONSTRAINT FK_CREDENTIAL_FILES_VERSION FOREIGN KEY (credential_version_id) REFERENCES credential_versions (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE credential_files DROP FOREIGN KEY FK_CREDENTIAL_FILES_PRACTITIONER');
+        $this->addSql('DROP INDEX IDX_CREDENTIAL_FILES_PRACTITIONER ON credential_files');
+        $this->addSql('ALTER TABLE credential_files DROP COLUMN practitioner_id');
+    }
+
+    public function down(Schema $schema): void
+    {
+        $this->addSql('ALTER TABLE credential_files ADD practitioner_id INT DEFAULT NULL');
+        $this->addSql('UPDATE credential_files cf JOIN credential_versions cv ON cf.credential_version_id = cv.id JOIN credential_submissions cs ON cv.submission_id = cs.id SET cf.practitioner_id = cs.practitioner_id');
+        $this->addSql('ALTER TABLE credential_files MODIFY practitioner_id INT NOT NULL');
+        $this->addSql('CREATE INDEX IDX_CREDENTIAL_FILES_PRACTITIONER ON credential_files (practitioner_id)');
+        $this->addSql('ALTER TABLE credential_files ADD CONSTRAINT FK_CREDENTIAL_FILES_PRACTITIONER FOREIGN KEY (practitioner_id) REFERENCES practitioners (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE credential_files DROP FOREIGN KEY FK_CREDENTIAL_FILES_VERSION');
+        $this->addSql('DROP INDEX IDX_CREDENTIAL_FILES_VERSION ON credential_files');
+        $this->addSql('ALTER TABLE credential_files DROP COLUMN credential_version_id');
+
+        $this->addSql('DROP TABLE IF EXISTS credential_versions');
+        $this->addSql('DROP TABLE IF EXISTS credential_submissions');
+    }
+}

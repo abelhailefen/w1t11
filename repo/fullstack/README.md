@@ -22,6 +22,13 @@ Module 3 (Practitioner Profiles) is implemented:
 - Credential file upload/list/download with storage outside web root
 - Practitioner/Firm frontend pages with reveal modal
 
+Module 4 (Credential Review) is implemented:
+- Credential submission workflow with strict state transitions and per-transition versioning
+- Reviewer queue and version timeline endpoints/pages
+- Rejection requires a non-empty comment (server-side enforced)
+- Rollback endpoint with ROLE_SYSTEM_ADMIN check and step-up auth verification
+- Credential files linked to credential versions
+
 ## One-command startup
 
 ```bash
@@ -70,6 +77,17 @@ Practitioner profiles:
 - `GET /api/v1/practitioners/{id}/credentials`
 - `GET /api/v1/practitioners/{id}/credentials/{fileId}/download`
 
+Credential review:
+- `POST /api/v1/credentials`
+- `POST /api/v1/credentials/{id}/submit`
+- `POST /api/v1/credentials/{id}/start-review`
+- `POST /api/v1/credentials/{id}/approve`
+- `POST /api/v1/credentials/{id}/reject`
+- `POST /api/v1/credentials/{id}/request-resubmission`
+- `GET /api/v1/credentials/{id}/versions`
+- `POST /api/v1/credentials/{id}/rollback`
+- `GET /api/v1/credentials/queue`
+
 All errors are structured as:
 
 ```json
@@ -94,6 +112,8 @@ All errors are structured as:
 - User management: `http://localhost:3000/admin/users` (System Admin only)
 - Practitioners: `http://localhost:3000/practitioners` (authenticated)
 - Firms: `http://localhost:3000/admin/firms` (System Admin only)
+- Credential queue: `http://localhost:3000/credentials/queue` (Reviewer/System Admin)
+- Credential detail: `http://localhost:3000/credentials/:id`
 
 Flow:
 1. Login with seeded credentials
@@ -134,9 +154,49 @@ The script executes:
 - [x] Module 1: Foundation
 - [x] Module 2: Auth & Users
 - [x] Module 3: Practitioner Profiles
-- [ ] Module 4: Credential Review
-- [ ] Module 5: Appointment Scheduling
-- [ ] Module 6: Question Bank
-- [ ] Module 7: Analytics & Dashboards
+- [x] Module 4: Credential Review
+- [x] Module 5: Appointment Scheduling
+- [x] Module 6: Question Bank
+- [x] Module 7: Analytics & Dashboards
 - [ ] Module 8: Audit & Data Governance
 - [ ] Module 9: Polish & Integration
+
+## Module 5 scheduling endpoints
+
+- `GET|PUT /api/v1/availability`
+- `POST /api/v1/appointments/slots/generate`
+- `GET /api/v1/appointments/slots`
+- `POST /api/v1/appointments/hold`
+- `POST /api/v1/appointments/book`
+- `POST /api/v1/appointments/{id}/reschedule`
+- `POST /api/v1/appointments/{id}/cancel`
+- `GET /api/v1/appointments/calendar`
+- `GET|POST|PATCH|DELETE /api/v1/admin/locations`
+- `GET|POST /api/v1/questions`
+- `GET|PATCH /api/v1/questions/{id}`
+- `POST /api/v1/questions/{id}/publish`
+- `PATCH /api/v1/questions/{id}/status`
+- `POST /api/v1/questions/import`
+- `GET /api/v1/questions/export`
+- `GET /api/v1/questions/{id}/versions`
+- `POST /api/v1/questions/{id}/rollback`
+- `GET|POST|PATCH|DELETE /api/v1/admin/question-tags`
+- `GET|POST|PATCH|DELETE /api/v1/admin/question-categories`
+- `POST /api/v1/analytics/query`
+- `POST /api/v1/analytics/queries/save`
+- `GET /api/v1/analytics/queries`
+- `POST /api/v1/analytics/features`
+- `GET /api/v1/analytics/features`
+- `GET /api/v1/dashboards/compliance`
+- `GET /api/v1/dashboards/trend`
+- `GET /api/v1/dashboards/distribution`
+- `GET /api/v1/dashboards/correlation`
+- `GET /api/v1/reports/export.csv`
+- `GET /api/v1/reports/export.pdf`
+- `GET|POST|PATCH|DELETE /api/v1/admin/org-units`
+
+Cleanup command:
+
+```bash
+docker compose exec backend php bin/console app:appointments:cleanup-expired-holds
+```

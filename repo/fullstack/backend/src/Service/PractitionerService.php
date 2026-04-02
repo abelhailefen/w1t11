@@ -9,6 +9,7 @@ use App\Entity\SensitiveAccessLog;
 use App\Entity\User;
 use App\Enum\PractitionerStatus;
 use App\Repository\CredentialFileRepository;
+use App\Repository\CredentialVersionRepository;
 use App\Repository\FirmRepository;
 use App\Repository\PractitionerRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -19,8 +20,10 @@ class PractitionerService
         private readonly PractitionerRepository $practitionerRepository,
         private readonly FirmRepository $firmRepository,
         private readonly CredentialFileRepository $credentialFileRepository,
+        private readonly CredentialVersionRepository $credentialVersionRepository,
         private readonly EncryptionService $encryptionService,
         private readonly FileUploadService $fileUploadService,
+        private readonly CredentialWorkflowService $credentialWorkflowService,
         private readonly EntityManagerInterface $entityManager
     ) {
     }
@@ -135,11 +138,17 @@ class PractitionerService
         ];
     }
 
-    public function uploadCredentialFile(Practitioner $practitioner, \Symfony\Component\HttpFoundation\File\UploadedFile $file): CredentialFile
+    public function uploadCredentialFile(Practitioner $practitioner, \Symfony\Component\HttpFoundation\File\UploadedFile $file, User $user): CredentialFile
     {
         $result = $this->fileUploadService->storeCredentialFile($file, (int) $practitioner->getId());
+        $submission = $this->credentialWorkflowService->findOrCreateDraftSubmissionForPractitioner($practitioner, $user);
+        $version = $this->credentialVersionRepository->findLatestForSubmission($submission);
+        if (!$version) {
+            throw new ApiException('No credential version found for submission', 500);
+        }
+
         $entity = (new CredentialFile())
-            ->setPractitioner($practitioner)
+            ->setCredentialVersion($version)
             ->setOriginalName($result['original_name'])
             ->setMimeType($result['mime_type'])
             ->setSizeBytes((int) $result['size_bytes'])

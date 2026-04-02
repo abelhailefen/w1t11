@@ -4,8 +4,6 @@ namespace App\Entity;
 
 use App\Enum\PractitionerStatus;
 use App\Repository\PractitionerRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PractitionerRepository::class)]
@@ -44,15 +42,6 @@ class Practitioner
 
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $updatedAt;
-
-    /** @var Collection<int, CredentialFile> */
-    #[ORM\OneToMany(mappedBy: 'practitioner', targetEntity: CredentialFile::class, cascade: ['remove'])]
-    private Collection $credentialFiles;
-
-    public function __construct()
-    {
-        $this->credentialFiles = new ArrayCollection();
-    }
 
     public function getId(): ?int
     {
@@ -158,9 +147,4 @@ class Practitioner
         return $this;
     }
 
-    /** @return Collection<int, CredentialFile> */
-    public function getCredentialFiles(): Collection
-    {
-        return $this->credentialFiles;
-    }
 }

@@ -321,3 +321,81 @@ Module 3 completion checkpoint:
 - Reveal flow logs to `sensitive_access_logs` on every successful reveal
 - Upload/download flow verified with persisted `credential_files` metadata and file retrieval
 - Backend and frontend Module 3 suites run green in Docker
+
+## 14) Module 4 Delivery Snapshot
+
+Implemented scope for Credential Review includes:
+- `CredentialState` enum and `CredentialSubmission` / `CredentialVersion` entities
+- `credential_files` linkage switched to `credential_version_id`
+- Migration for `credential_submissions`, `credential_versions`, and credential file FK backfill/update
+- `CredentialWorkflowService` with strict transitions and descriptive 422 errors on invalid transitions
+- Mandatory rejection comments enforced server-side
+- Rollback flow restricted to `ROLE_SYSTEM_ADMIN` and gated by `StepUpAuthService`
+- `CredentialController` endpoints with OpenAPI annotations for create/submit/review/approve/reject/resubmission/versions/rollback/queue
+- Frontend credential queue and detail pages with state badges, timeline history, role-based actions, and rollback modal
+- Unit/API/frontend tests for state transitions, rollback, queue filtering, and UI action validation
+
+Module 4 completion checkpoint:
+- Full workflow verified: create -> submit -> start-review -> approve
+- Rejection + comment + resubmit workflow verified
+- Rollback with step-up auth verified and produces a new version
+- Swagger includes all credential workflow endpoints under `/api/v1/credentials*`
+
+## 15) Module 5 Delivery Snapshot
+
+Implemented scope for Appointment Scheduling includes:
+- `Location`, `AvailabilityWindow`, `AppointmentSlot`, `Appointment`, `AppointmentRescheduleHistory` entities
+- `BookingService` with transactional row-level locks (`SELECT ... FOR UPDATE`) for hold/confirm/reschedule/cancel
+- Conflict detection against overlapping confirmed appointments
+- 90-day booking advance guard and 24-hour cancellation window rule
+- Hold expiration enforcement server-side with 410 response on expired confirms
+- `SlotGenerationService` for materializing slots from recurring windows
+- `AppointmentController` endpoints for availability, slot list, hold/book/reschedule/cancel/calendar, and appointment list
+- `AdminLocationController` CRUD with deactivate semantics
+- Cleanup command `app:appointments:cleanup-expired-holds`
+- Seed updates for locations, windows, generated slots, and mixed sample appointments
+- Frontend calendar workbench, booking drawer with countdown, appointment list, availability admin, and location admin pages
+- Unit/API/frontend tests including required concurrency test (parallel holds, one success/one failure)
+
+Module 5 completion checkpoint:
+- Full scheduling flow verified: configure availability -> generate slots -> hold -> book -> reschedule -> cancel
+- Hold expiry enforcement verified via expired hold confirm rejection
+- Swagger includes all scheduling endpoints under `/api/v1/availability`, `/api/v1/appointments*`, and `/api/v1/admin/locations*`
+
+## 16) Module 6 Delivery Snapshot
+
+Implemented scope for Question Bank includes:
+- Question bank entities and repositories for categories, tags, questions, versions, import jobs, and similarity flags
+- Migration for question versioning and import/similarity/tag-map tables
+- `QuestionService` for CRUD, version-on-every-edit, status transitions, publish flow with duplicate check, and rollback with step-up
+- `QuestionSimilarityService` server-side duplicate detection against published question corpus using percentage similarity and configurable threshold
+- `QuestionImportExportService` with CSV/XLSX import validation (per-row success/error) and CSV/XLSX export
+- `QuestionController` endpoints for list/detail/create/update/publish/status/import/export/versions/rollback with OpenAPI annotations
+- Admin controllers for question tags and categories with OpenAPI annotations
+- Frontend question bank list/editor/review/history/import-export pages and components
+- Docker-run unit/API/frontend tests for duplicate detection, import validation, transitions, CRUD/publish/import/export/rollback/admin CRUD
+
+Module 6 completion checkpoint:
+- Rich text question draft/save/publish flow verified with duplicate warning review
+- Import workflow supports mixed valid/invalid rows with per-row results
+- Export workflow produces downloadable CSV/XLSX
+- Swagger includes all question bank endpoints under `/api/v1/questions*`, `/api/v1/admin/question-tags*`, and `/api/v1/admin/question-categories*`
+
+## 17) Module 7 Delivery Snapshot
+
+Implemented scope for Analytics & Dashboards includes:
+- `OrgUnit`, `AnalyticsSavedQuery`, and `AnalyticsFeature` entities with repositories
+- Migration for analytics saved query/feature tables
+- `AnalyticsService` with structured query execution using Doctrine QueryBuilder, KPI calculations, trend/distribution/correlation data
+- `ReportExportService` CSV and dompdf PDF export
+- Controllers for analytics query/save/list/features, dashboards (compliance/trend/distribution/correlation), and report exports with OpenAPI annotations
+- Admin org-unit CRUD controller with OpenAPI annotations
+- Frontend analytics workbench, compliance dashboard, and chart components (`TrendChart`, `DistributionChart`, `CorrelationChart`)
+- Dashboard home upgraded to real KPI overview and quick links
+- Tests for KPI calculations, query builder behavior, trend intervals, analytics API endpoints, export endpoints, authorization, and frontend dashboard/workbench rendering
+
+Module 7 completion checkpoint:
+- Compliance dashboard displays real KPI values and trend data from API
+- Analytics workbench runs, saves, reloads structured queries and supports CSV export path
+- PDF and CSV report endpoints verified
+- Swagger includes analytics/dashboard/report endpoints under `/api/v1/analytics*`, `/api/v1/dashboards*`, `/api/v1/reports*`, and admin org units under `/api/v1/admin/org-units*`

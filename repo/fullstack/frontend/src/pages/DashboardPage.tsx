@@ -1,36 +1,36 @@
-import { Card, Col, Descriptions, Row, Typography } from 'antd';
+import { Card, Col, Row, Space, Statistic, Typography } from 'antd';
 import { useEffect, useState } from 'react';
-import { apiClient } from '../services/apiClient';
-
-type HealthResponse = {
-  status: string;
-  service: string;
-  timestamp: string;
-};
+import { Link } from 'react-router-dom';
+import { analyticsApi } from '../services/analyticsApi';
 
 export function DashboardPage() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [kpis, setKpis] = useState<any>({});
 
   useEffect(() => {
-    apiClient
-      .get<HealthResponse>('/api/v1/health')
-      .then((response) => setHealth(response.data))
-      .catch(() => setHealth(null));
+    const from = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
+    const to = new Date().toISOString().slice(0, 10);
+    analyticsApi.compliance(from, to).then((r) => setKpis(r.data)).catch(() => setKpis({}));
   }, []);
 
   return (
-    <Row gutter={[16, 16]}>
-      <Col span={24}>
-        <Card>
-          <Typography.Title level={5}>Foundation Module Status</Typography.Title>
-          <Descriptions column={1} size="small">
-            <Descriptions.Item label="Frontend">Online</Descriptions.Item>
-            <Descriptions.Item label="Backend Health">{health?.status ?? 'Unavailable'}</Descriptions.Item>
-            <Descriptions.Item label="Service">{health?.service ?? 'Unavailable'}</Descriptions.Item>
-            <Descriptions.Item label="Timestamp">{health?.timestamp ?? 'Unavailable'}</Descriptions.Item>
-          </Descriptions>
-        </Card>
-      </Col>
-    </Row>
+    <Space direction="vertical" style={{ width: '100%' }}>
+      <Card>
+        <Typography.Title level={5}>Overview Dashboard</Typography.Title>
+        <Row gutter={[12, 12]}>
+          <Col span={8}><Statistic title="Credential Reviews" value={kpis.credential_review_volume || 0} /></Col>
+          <Col span={8}><Statistic title="Approval Rate" value={kpis.approval_rate || 0} suffix="%" /></Col>
+          <Col span={8}><Statistic title="Question Growth" value={kpis.question_bank_growth || 0} /></Col>
+        </Row>
+      </Card>
+      <Card title="Quick Links">
+        <Space>
+          <Link to="/credentials/queue">Credential Review</Link>
+          <Link to="/calendar">Calendar</Link>
+          <Link to="/questions">Question Bank</Link>
+          <Link to="/analytics/workbench">Analytics Workbench</Link>
+          <Link to="/analytics/compliance">Compliance Dashboard</Link>
+        </Space>
+      </Card>
+    </Space>
   );
 }

@@ -14,9 +14,9 @@ class CredentialFile
     #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Practitioner::class, inversedBy: 'credentialFiles')]
-    #[ORM\JoinColumn(name: 'practitioner_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    private Practitioner $practitioner;
+    #[ORM\ManyToOne(targetEntity: CredentialVersion::class, inversedBy: 'files')]
+    #[ORM\JoinColumn(name: 'credential_version_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private CredentialVersion $credentialVersion;
 
     #[ORM\Column(type: 'string', length: 255)]
     private string $originalName;
@@ -38,14 +38,14 @@ class CredentialFile
         return $this->id;
     }
 
-    public function getPractitioner(): Practitioner
+    public function getCredentialVersion(): CredentialVersion
     {
-        return $this->practitioner;
+        return $this->credentialVersion;
     }
 
-    public function setPractitioner(Practitioner $practitioner): self
+    public function setCredentialVersion(CredentialVersion $credentialVersion): self
     {
-        $this->practitioner = $practitioner;
+        $this->credentialVersion = $credentialVersion;
         return $this;
     }
 

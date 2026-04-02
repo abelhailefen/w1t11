@@ -159,8 +159,14 @@ class PractitionerController extends ApiController
             return $this->error('File is required', 400);
         }
 
+        /** @var User|null $user */
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->error('Unauthorized', 401);
+        }
+
         try {
-            $saved = $this->practitionerService->uploadCredentialFile($practitioner, $file);
+            $saved = $this->practitionerService->uploadCredentialFile($practitioner, $file, $user);
         } catch (ApiException $exception) {
             return $this->fromApiException($exception);
         }
@@ -190,8 +196,8 @@ class PractitionerController extends ApiController
             return $this->error('Practitioner not found', 404);
         }
 
-        $file = $this->credentialFileRepository->find($fileId);
-        if (!$file || $file->getPractitioner()->getId() !== $practitioner->getId()) {
+        $file = $this->credentialFileRepository->findOneForPractitioner($practitioner, $fileId);
+        if (!$file) {
             return $this->error('File not found', 404);
         }
         if (!is_file($file->getStoragePath())) {
@@ -211,6 +217,7 @@ class PractitionerController extends ApiController
             'original_name' => $file->getOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size_bytes' => $file->getSizeBytes(),
+            'version_no' => $file->getCredentialVersion()->getVersionNo(),
             'uploaded_at' => $file->getUploadedAt()->format(DATE_ATOM),
         ];
     }
