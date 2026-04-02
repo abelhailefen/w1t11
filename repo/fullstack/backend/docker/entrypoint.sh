@@ -12,4 +12,8 @@ fi
 php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console app:seed:initial --no-interaction
 
+chown -R www-data:www-data /var/www/html/var
+mkdir -p "${CREDENTIAL_UPLOAD_DIR:-/var/app/uploads/credentials}"
+chown -R www-data:www-data /var/app/uploads
+
 exec "$@"

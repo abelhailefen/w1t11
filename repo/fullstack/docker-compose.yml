@@ -40,6 +40,7 @@ services:
       JWT_PUBLIC_KEY: /var/www/html/config/jwt/public.pem
       JWT_PASSPHRASE: changeme_jwt_passphrase
       LICENSE_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+      CREDENTIAL_UPLOAD_DIR: /var/app/uploads/credentials
       HUMAN_VERIFICATION_ENABLED: "false"
       DUPLICATE_SIMILARITY_THRESHOLD: 80
       APPOINTMENT_SLOT_MINUTES: 30

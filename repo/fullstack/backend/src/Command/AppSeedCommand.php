@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Service\EncryptionService;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -11,7 +12,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'app:seed:initial', description: 'Seeds initial idempotent data')]
 class AppSeedCommand extends Command
 {
-    public function __construct(private readonly Connection $connection)
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly EncryptionService $encryptionService
+    )
     {
         parent::__construct();
     }
@@ -71,13 +75,23 @@ class AppSeedCommand extends Command
 
     private function seedReferenceData(): void
     {
-        if (!$this->connection->fetchOne('SELECT id FROM firms WHERE name = :name', ['name' => 'Eagle Point Legal'])) {
-            $this->connection->insert('firms', [
-                'name' => 'Eagle Point Legal',
-                'address' => '100 Compliance Ave',
-                'status' => 'ACTIVE',
-                'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
-            ]);
+        $firms = [
+            ['Eagle Point Legal', '100 Compliance Ave'],
+            ['Summit Regulatory Group', '42 Oversight Blvd'],
+            ['North Harbor Compliance', '55 Harbor Road'],
+            ['Blue River Advisory', '210 River Street'],
+            ['Meridian Counsel Partners', '11 Meridian Plaza'],
+        ];
+
+        foreach ($firms as [$name, $address]) {
+            if (!$this->connection->fetchOne('SELECT id FROM firms WHERE name = :name', ['name' => $name])) {
+                $this->connection->insert('firms', [
+                    'name' => $name,
+                    'address' => $address,
+                    'status' => 'ACTIVE',
+                    'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                ]);
+            }
         }
 
         if (!$this->connection->fetchOne('SELECT id FROM locations WHERE name = :name', ['name' => 'Main Hearing Center'])) {
@@ -114,14 +128,29 @@ class AppSeedCommand extends Command
         $categoryId = (int) $this->connection->fetchOne('SELECT id FROM question_categories WHERE name = :name', ['name' => 'Regulatory Fundamentals']);
         $adminId = (int) $this->connection->fetchOne('SELECT id FROM users WHERE username = :username', ['username' => 'admin']);
 
-        if (!$this->connection->fetchOne('SELECT id FROM practitioners WHERE full_name = :name', ['name' => 'Jordan Blake'])) {
+        $practitioners = [
+            ['Jordan Blake', 'Eagle Point Legal', 'NY-445566', 'NY', 'jordan.blake@example.local', '+1-555-0101'],
+            ['Casey Morgan', 'Summit Regulatory Group', 'CA-102938', 'CA', 'casey.morgan@example.local', '+1-555-0102'],
+            ['Taylor Quinn', 'North Harbor Compliance', 'TX-556677', 'TX', 'taylor.quinn@example.local', '+1-555-0103'],
+            ['Avery Brooks', 'Blue River Advisory', 'FL-889900', 'FL', 'avery.brooks@example.local', '+1-555-0104'],
+            ['Riley Stone', 'Meridian Counsel Partners', 'IL-112233', 'IL', 'riley.stone@example.local', '+1-555-0105'],
+            ['Morgan Lee', 'Eagle Point Legal', 'WA-665544', 'WA', 'morgan.lee@example.local', '+1-555-0106'],
+        ];
+
+        foreach ($practitioners as [$fullName, $firmName, $license, $jurisdiction, $email, $phone]) {
+            $existing = $this->connection->fetchOne('SELECT id FROM practitioners WHERE full_name = :name', ['name' => $fullName]);
+            if ($existing) {
+                continue;
+            }
+
+            $pFirmId = (int) $this->connection->fetchOne('SELECT id FROM firms WHERE name = :name', ['name' => $firmName]);
             $this->connection->insert('practitioners', [
-                'firm_id' => $firmId,
-                'full_name' => 'Jordan Blake',
-                'license_number_encrypted' => 'seed-encrypted-license-placeholder',
-                'license_jurisdiction' => 'NY',
-                'contact_email' => 'jordan.blake@example.local',
-                'contact_phone' => '+1-555-0101',
+                'firm_id' => $pFirmId,
+                'full_name' => $fullName,
+                'license_number_encrypted' => $this->encryptionService->encrypt($license),
+                'license_jurisdiction' => $jurisdiction,
+                'contact_email' => $email,
+                'contact_phone' => $phone,
                 'status' => 'ACTIVE',
                 'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
                 'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),

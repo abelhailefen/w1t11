@@ -12,6 +12,15 @@ Module 2 (Auth & Users) is implemented:
 - Failed-login lockout policy (5 failures -> 15 min lock)
 - Local CAPTCHA generation/verification (GD, no network)
 - Admin user management (list users, role update, password reset)
+- Interactive Swagger/OpenAPI documentation at `http://localhost:8000/api/doc`
+
+Module 3 (Practitioner Profiles) is implemented:
+- Firm management CRUD for system admins
+- Practitioner CRUD with encrypted license storage at rest
+- Masked license display by default and explicit reveal flow
+- Sensitive access logging on every reveal action
+- Credential file upload/list/download with storage outside web root
+- Practitioner/Firm frontend pages with reveal modal
 
 ## One-command startup
 
@@ -46,6 +55,20 @@ Admin-only:
 - `PATCH /api/v1/admin/users/{id}/role`
 - `POST /api/v1/admin/users/{id}/reset-password`
 - `POST /api/v1/admin/step-up/verify`
+- `GET /api/v1/admin/firms`
+- `POST /api/v1/admin/firms`
+- `PATCH /api/v1/admin/firms/{id}`
+- `DELETE /api/v1/admin/firms/{id}`
+
+Practitioner profiles:
+- `GET /api/v1/practitioners`
+- `POST /api/v1/practitioners`
+- `GET /api/v1/practitioners/{id}`
+- `PATCH /api/v1/practitioners/{id}`
+- `POST /api/v1/practitioners/{id}/license/reveal`
+- `POST /api/v1/practitioners/{id}/credentials/upload`
+- `GET /api/v1/practitioners/{id}/credentials`
+- `GET /api/v1/practitioners/{id}/credentials/{fileId}/download`
 
 All errors are structured as:
 
@@ -57,11 +80,20 @@ All errors are structured as:
 }
 ```
 
+## Swagger / OpenAPI UI
+
+- Swagger UI: `http://localhost:8000/api/doc`
+- Raw OpenAPI JSON: `http://localhost:8000/api/doc.json`
+- Use `POST /api/v1/auth/login` in Swagger to get a JWT token.
+- Click **Authorize** and paste `Bearer <token>` to call protected endpoints such as `GET /api/v1/auth/me`.
+
 ## Frontend Auth UI
 
 - Login page: `http://localhost:3000/login`
 - Dashboard: `http://localhost:3000/` (requires auth)
 - User management: `http://localhost:3000/admin/users` (System Admin only)
+- Practitioners: `http://localhost:3000/practitioners` (authenticated)
+- Firms: `http://localhost:3000/admin/firms` (System Admin only)
 
 Flow:
 1. Login with seeded credentials
@@ -93,13 +125,15 @@ The script executes:
 ## Environment variable policy
 
 - Runtime variables are explicitly set in `docker-compose.yml` service `environment` sections.
+- `backend/.env` and `backend/.env.test` provide non-sensitive fallback defaults required by Symfony Dotenv/runtime boot.
+- Docker Compose environment variables override `.env` values at runtime.
 - `.env.example` is provided for documentation only.
 
 ## Module status
 
 - [x] Module 1: Foundation
 - [x] Module 2: Auth & Users
-- [ ] Module 3: Practitioner Profiles
+- [x] Module 3: Practitioner Profiles
 - [ ] Module 4: Credential Review
 - [ ] Module 5: Appointment Scheduling
 - [ ] Module 6: Question Bank

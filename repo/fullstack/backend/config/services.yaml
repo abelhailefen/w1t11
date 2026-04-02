@@ -1,5 +1,7 @@
 parameters:
   human_verification_enabled: '%env(bool:HUMAN_VERIFICATION_ENABLED)%'
+  license_encryption_key: '%env(default::LICENSE_ENCRYPTION_KEY)%'
+  credential_upload_dir: '%env(string:CREDENTIAL_UPLOAD_DIR)%'
 
 services:
   _defaults:
@@ -16,6 +18,14 @@ services:
   App\Service\NullHumanVerificationService:
     arguments:
       $enabled: '%human_verification_enabled%'
+
+  App\Service\EncryptionService:
+    arguments:
+      $licenseEncryptionKey: '%license_encryption_key%'
+
+  App\Service\FileUploadService:
+    arguments:
+      $uploadBaseDir: '%credential_upload_dir%'
 
   App\Service\HumanVerificationInterface:
     alias: App\Service\NullHumanVerificationService

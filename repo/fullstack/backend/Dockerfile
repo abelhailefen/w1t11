@@ -20,6 +20,7 @@ WORKDIR /var/www/html
 
 COPY docker/php.ini /usr/local/etc/php/conf.d/app.ini
 COPY docker/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
+COPY .env .env.test ./
 
 COPY composer.json composer.lock* ./
 RUN composer install --no-interaction --prefer-dist --no-scripts
@@ -27,6 +28,7 @@ RUN composer install --no-interaction --prefer-dist --no-scripts
 COPY . .
 
 RUN chmod +x docker/entrypoint.sh docker/wait-for-db.sh bin/console bin/phpunit
+RUN mkdir -p var/cache var/log && chown -R www-data:www-data var
 
 ENTRYPOINT ["/var/www/html/docker/entrypoint.sh"]
 CMD ["apache2-foreground"]

@@ -29,6 +29,10 @@ security:
       pattern: ^/api/v1/health$
       stateless: true
       security: false
+    docs:
+      pattern: ^/api/doc(\.json)?$
+      stateless: true
+      security: false
     api:
       pattern: ^/api/v1/
       stateless: true
@@ -38,6 +42,7 @@ security:
 
   access_control:
     - { path: ^/api/v1/health, roles: PUBLIC_ACCESS }
+    - { path: ^/api/doc(\.json)?$, roles: PUBLIC_ACCESS }
     - { path: ^/api/v1/auth/(login|register|captcha|captcha/verify)$, roles: PUBLIC_ACCESS }
     - { path: ^/api/v1/admin, roles: ROLE_SYSTEM_ADMIN }
     - { path: ^/api/v1/auth/me$, roles: IS_AUTHENTICATED_FULLY }

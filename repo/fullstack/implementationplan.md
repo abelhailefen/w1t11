@@ -246,9 +246,14 @@ Core services:
 Module 2 additions:
 - Frontend `pages/UserManagementPage.tsx`
 
+Module 3 additions:
+- Frontend `pages/PractitionerListPage.tsx`
+- Frontend `pages/PractitionerDetailPage.tsx`
+- Frontend `pages/FirmManagementPage.tsx`
+- Frontend `components/LicenseRevealModal.tsx`
+
 Module 9 additions:
 - Frontend `pages/SystemSettingsPage.tsx`
-- Frontend `pages/FirmManagementPage.tsx`
 
 Scheduling hold expiration:
 - `appointments.held_until` enforced in `BookingService`
@@ -291,3 +296,28 @@ Implemented scope for Auth & Users includes:
 - JWT-secured API firewall and role hierarchy enforcement
 - React AuthContext, RoleGuard, LoginPage, UserManagementPage, role-based navigation
 - Unit tests and API tests for auth and admin flows
+
+Module 2 completion checkpoint:
+- Backend startup fixed for Symfony runtime Dotenv by adding committed fallback files: `backend/.env` and `backend/.env.test`
+- Interactive OpenAPI docs added with Nelmio at `GET /api/doc` and spec at `GET /api/doc.json`
+- Health, auth, and admin controllers are documented with request/response/security schemas
+- Test execution stabilized in Docker with explicit Symfony test env in `run_tests.sh`
+- Module 2 suites green: backend unit, backend API, and frontend Jest
+
+## 13) Module 3 Delivery Snapshot
+
+Implemented scope for Practitioner Profiles includes:
+- `Firm`, `Practitioner`, `SensitiveAccessLog`, and `CredentialFile` entities with repositories
+- `PractitionerService` with masked default responses and explicit license reveal endpoint
+- `EncryptionService` for license-at-rest encryption with deterministic masking format
+- `FileUploadService` for credential validation/storage under `CREDENTIAL_UPLOAD_DIR` (outside web root)
+- `AdminFirmController` and `PractitionerController` endpoints with OpenAPI annotations
+- Idempotent seed updates for firms and practitioners with encrypted licenses
+- React practitioner list/detail pages, firm management page, and reveal modal UI
+- Unit/API/frontend tests for encryption, uploads, CRUD, reveal logging, and firm admin flows
+
+Module 3 completion checkpoint:
+- Swagger includes `/api/v1/practitioners*` and `/api/v1/admin/firms*` under `GET /api/doc`
+- Reveal flow logs to `sensitive_access_logs` on every successful reveal
+- Upload/download flow verified with persisted `credential_files` metadata and file retrieval
+- Backend and frontend Module 3 suites run green in Docker

@@ -1,6 +1,6 @@
 import { Alert, Button, Card, Form, Image, Input, notification, Typography } from 'antd';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
 
@@ -35,8 +35,9 @@ export function LoginPage() {
       const status = error?.response?.status;
       const message = error?.response?.data?.message || 'Login failed';
       const captchaRequired = error?.response?.data?.details?.captcha_required;
+      const errorCode = error?.response?.data?.details?.error_code;
 
-      if (status === 423 || captchaRequired) {
+      if ((status === 403 && errorCode === 'NEED_CAPTCHA') || captchaRequired) {
         await fetchCaptcha();
       }
 
@@ -91,6 +92,10 @@ export function LoginPage() {
           <Button type="primary" htmlType="submit" loading={loading} disabled={loading} block>
             Login
           </Button>
+
+          <div style={{ marginTop: 12, textAlign: 'center' }}>
+            <Link to="/signup">New Practitioner? Register here</Link>
+          </div>
         </Form>
       </Card>
     </div>
