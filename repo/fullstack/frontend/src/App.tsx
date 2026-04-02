@@ -1,5 +1,5 @@
-import { Button, Layout, Menu, Typography } from 'antd';
-import { useMemo } from 'react';
+import { Badge, Button, Layout, Menu, Typography } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { RoleGuard } from './components/RoleGuard';
 import { useAuth } from './context/AuthContext';
@@ -24,6 +24,10 @@ import { QuestionTagsPage } from './pages/QuestionTagsPage';
 import { SignupPage } from './pages/SignupPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { UserManagementPage } from './pages/UserManagementPage';
+import { AuditLogPage } from './pages/AuditLogPage';
+import { SystemAlertsPage } from './pages/SystemAlertsPage';
+import { governanceApi } from './services/governanceApi';
+import { SystemSettingsPage } from './pages/SystemSettingsPage';
 
 const { Header, Sider, Content } = Layout;
 
@@ -31,6 +35,15 @@ function App() {
   const auth = useAuth();
   const location = useLocation();
   const isAuthRoute = location.pathname === '/login' || location.pathname === '/signup';
+  const [unackedAlerts, setUnackedAlerts] = useState(0);
+
+  useEffect(() => {
+    if (!auth.hasRole(['ROLE_SYSTEM_ADMIN'])) {
+      setUnackedAlerts(0);
+      return;
+    }
+    governanceApi.alerts({ acknowledged: false }).then((r) => setUnackedAlerts((r.data.items || []).length)).catch(() => setUnackedAlerts(0));
+  }, [auth.user?.role]);
   const items = useMemo(() => {
     const base = [
       {
@@ -54,11 +67,13 @@ function App() {
     if (auth.hasRole(['ROLE_SYSTEM_ADMIN'])) {
       base.push({ key: 'users', label: <Link to="/admin/users">User Management</Link> });
       base.push({ key: 'firms', label: <Link to="/admin/firms">Firms</Link> });
-      base.push({ key: 'availability', label: <Link to="/admin/availability">Availability</Link> });
       base.push({ key: 'locations', label: <Link to="/admin/locations">Locations</Link> });
       base.push({ key: 'question-categories', label: <Link to="/admin/question-categories">Categories</Link> });
       base.push({ key: 'question-tags', label: <Link to="/admin/question-tags">Tags</Link> });
       base.push({ key: 'org-units', label: <Link to="/admin/org-units">Org Units</Link> });
+      base.push({ key: 'system-settings', label: <Link to="/admin/settings">System Settings</Link> });
+      base.push({ key: 'audit-logs', label: <Link to="/admin/audit-logs">Audit Logs</Link> });
+      base.push({ key: 'alerts', label: <Link to="/admin/alerts"><Badge count={unackedAlerts} size="small">Alerts</Badge></Link> });
     }
 
     if (auth.hasRole(['ROLE_CONTENT_ADMIN', 'ROLE_SYSTEM_ADMIN'])) {
@@ -75,7 +90,7 @@ function App() {
     }
 
     return base;
-  }, [auth]);
+  }, [auth, unackedAlerts]);
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -181,6 +196,14 @@ function App() {
               }
             />
             <Route
+              path="/admin/settings"
+              element={
+                <RoleGuard allowedRoles={['ROLE_SYSTEM_ADMIN']}>
+                  <SystemSettingsPage />
+                </RoleGuard>
+              }
+            />
+            <Route
               path="/admin/locations"
               element={
                 <RoleGuard allowedRoles={['ROLE_SYSTEM_ADMIN']}>
@@ -217,6 +240,22 @@ function App() {
               element={
                 <RoleGuard allowedRoles={['ROLE_SYSTEM_ADMIN']}>
                   <FirmManagementPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/admin/audit-logs"
+              element={
+                <RoleGuard allowedRoles={['ROLE_SYSTEM_ADMIN']}>
+                  <AuditLogPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/admin/alerts"
+              element={
+                <RoleGuard allowedRoles={['ROLE_SYSTEM_ADMIN']}>
+                  <SystemAlertsPage />
                 </RoleGuard>
               }
             />

@@ -17,9 +17,6 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class AuthService
 {
-    private const CAPTCHA_THRESHOLD = 3;
-    private const CAPTCHA_WINDOW_MINUTES = 15;
-
     public function __construct(
         private readonly UserRepository $userRepository,
         private readonly LoginAttemptRepository $loginAttemptRepository,
@@ -28,7 +25,10 @@ class AuthService
         private readonly JWTTokenManagerInterface $jwtTokenManager,
         private readonly CaptchaService $captchaService,
         private readonly EntityManagerInterface $entityManager,
-        private readonly Connection $connection
+        private readonly Connection $connection,
+        private readonly AuditLogService $auditLogService,
+        private readonly AlertService $alertService,
+        private readonly SystemSettingService $systemSettingService
     ) {
     }
 
@@ -116,6 +116,7 @@ class AuthService
         $user->setStatus(UserStatus::ACTIVE);
         $user->setUpdatedAt($now);
         $this->recordAttempt($username, $lockout, $user, true, $ipAddress, $now);
+        $this->auditLogService->log($user->getId(), 'LOGIN', 'User', $user->getId(), null, ['username' => $user->getUsername()], $ipAddress);
 
         return [
             'token' => $this->jwtTokenManager->create($user),
@@ -153,13 +154,14 @@ class AuthService
                 }
 
                 $lockout->setFailedCount($nextCount);
-                $lockout->setCaptchaRequired($nextCount >= self::CAPTCHA_THRESHOLD);
+                $lockout->setCaptchaRequired($nextCount >= $this->loginLockoutAttempts());
                 $lockout->setLockedUntil(null);
                 $user->setStatus(UserStatus::ACTIVE);
                 $user->setUpdatedAt($attemptedAt);
             }
 
-            $this->recordFailedLoginAudit($username, $user, $ipAddress, $attemptedAt, $nextCount >= self::CAPTCHA_THRESHOLD);
+            $this->recordFailedLoginAudit($username, $user, $ipAddress, $attemptedAt, $nextCount >= $this->loginLockoutAttempts());
+            $this->alertService->checkFailedLoginsForUsername($username);
         } elseif ($user && $lockout) {
             $lockout->setFailedCount(0);
             $lockout->setCaptchaRequired(false);
@@ -179,12 +181,12 @@ class AuthService
 
     private function isCaptchaRequired(string $username, \DateTimeImmutable $now): bool
     {
-        return $this->countConsecutiveFailures($username, $now) >= self::CAPTCHA_THRESHOLD;
+        return $this->countConsecutiveFailures($username, $now) >= $this->loginLockoutAttempts();
     }
 
     private function countConsecutiveFailures(string $username, \DateTimeImmutable $now): int
     {
-        $since = $now->sub(new \DateInterval('PT' . self::CAPTCHA_WINDOW_MINUTES . 'M'));
+        $since = $now->sub(new \DateInterval('PT' . $this->lockoutDurationMinutes() . 'M'));
         $attempts = $this->loginAttemptRepository->findRecentByUsername($username, $since);
 
         $consecutiveFailures = 0;
@@ -234,19 +236,25 @@ class AuthService
         \DateTimeImmutable $occurredAt,
         bool $captchaRequired
     ): void {
-        $this->connection->insert('audit_logs', [
-            'occurred_at' => $occurredAt->format('Y-m-d H:i:s'),
-            'user_id' => $user?->getId(),
-            'action_type' => 'LOGIN_FAILED',
-            'entity_type' => 'User',
-            'entity_id' => $user?->getId(),
-            'old_value_json' => null,
-            'new_value_json' => json_encode([
-                'username' => $username,
-                'captcha_required' => $captchaRequired,
-            ], JSON_THROW_ON_ERROR),
-            'ip_address' => $ipAddress,
-            'retention_expires_at' => $occurredAt->add(new \DateInterval('P365D'))->format('Y-m-d H:i:s'),
-        ]);
+        $this->auditLogService->log($user?->getId(), 'LOGIN_FAILED', 'User', $user?->getId(), null, [
+            'username' => $username,
+            'captcha_required' => $captchaRequired,
+            'occurred_at' => $occurredAt->format(DATE_ATOM),
+        ], $ipAddress);
+    }
+
+    public function logout(User $user, ?string $ipAddress): void
+    {
+        $this->auditLogService->log($user->getId(), 'LOGOUT', 'User', $user->getId(), null, ['username' => $user->getUsername()], $ipAddress);
+    }
+
+    private function loginLockoutAttempts(): int
+    {
+        return max(1, $this->systemSettingService->getInt('login_lockout_attempts', 3));
+    }
+
+    private function lockoutDurationMinutes(): int
+    {
+        return max(1, $this->systemSettingService->getInt('login_lockout_duration_minutes', 15));
     }
 }

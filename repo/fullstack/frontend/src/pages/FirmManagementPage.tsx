@@ -6,6 +6,7 @@ export function FirmManagementPage() {
   const [items, setItems] = useState<FirmItem[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<FirmItem | null>(null);
+  const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
 
   const load = async () => {
@@ -19,17 +20,22 @@ export function FirmManagementPage() {
 
   const save = async () => {
     const values = await form.validateFields();
-    if (editing) {
-      await practitionerApi.updateFirm(editing.id, values);
-      message.success('Firm updated');
-    } else {
-      await practitionerApi.createFirm(values);
-      message.success('Firm created');
+    setSaving(true);
+    try {
+      if (editing) {
+        await practitionerApi.updateFirm(editing.id, values);
+        message.success('Firm updated');
+      } else {
+        await practitionerApi.createFirm(values);
+        message.success('Firm created');
+      }
+      setOpen(false);
+      setEditing(null);
+      form.resetFields();
+      await load();
+    } finally {
+      setSaving(false);
     }
-    setOpen(false);
-    setEditing(null);
-    form.resetFields();
-    await load();
   };
 
   const deactivate = async (id: number) => {
@@ -46,6 +52,7 @@ export function FirmManagementPage() {
       <Table<FirmItem>
         rowKey="id"
         dataSource={items}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: 'Name', dataIndex: 'name' },
           { title: 'Address', dataIndex: 'address' },
@@ -72,9 +79,9 @@ export function FirmManagementPage() {
         ]}
       />
 
-      <Modal open={open} onOk={save} onCancel={() => setOpen(false)} title={editing ? 'Edit Firm' : 'Add Firm'}>
+      <Modal open={open} onOk={save} okButtonProps={{ loading: saving, disabled: saving }} onCancel={() => setOpen(false)} title={editing ? 'Edit Firm' : 'Add Firm'}>
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
+          <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }]} validateTrigger="onBlur">
             <Input />
           </Form.Item>
           <Form.Item name="address" label="Address">

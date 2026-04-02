@@ -56,6 +56,9 @@ class LockoutLogicTest extends KernelTestCase
             $lockout->setLockedUntil(null);
         }
 
+        $this->connection->executeStatement('DELETE FROM login_attempts WHERE username = :username', ['username' => 'lockout_tester']);
+        $this->connection->executeStatement("UPDATE system_settings SET setting_value = '3' WHERE setting_key = 'login_lockout_attempts'");
+
         $this->entityManager->flush();
     }
 

@@ -10,6 +10,7 @@ export function PractitionerListPage() {
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState({ name: '', status: '', firm_id: '' });
   const [openCreate, setOpenCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [form] = Form.useForm();
 
   const load = async (nextPage = page) => {
@@ -36,11 +37,16 @@ export function PractitionerListPage() {
 
   const createPractitioner = async () => {
     const values = await form.validateFields();
-    await practitionerApi.createPractitioner(values);
-    message.success('Practitioner created');
-    setOpenCreate(false);
-    form.resetFields();
-    await load(1);
+    setCreating(true);
+    try {
+      await practitionerApi.createPractitioner(values);
+      message.success('Practitioner created');
+      setOpenCreate(false);
+      form.resetFields();
+      await load(1);
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -75,6 +81,7 @@ export function PractitionerListPage() {
         rowKey="id"
         loading={loading}
         dataSource={items}
+        scroll={{ x: 'max-content' }}
         pagination={{ current: page, pageSize: 10, total, onChange: (p) => load(p) }}
         columns={[
           { title: 'Name', dataIndex: 'full_name' },
@@ -86,15 +93,15 @@ export function PractitionerListPage() {
         ]}
       />
 
-      <Modal open={openCreate} title="Add Practitioner" onOk={createPractitioner} onCancel={() => setOpenCreate(false)} destroyOnClose>
+      <Modal open={openCreate} title="Add Practitioner" onOk={createPractitioner} okButtonProps={{ loading: creating, disabled: creating }} onCancel={() => setOpenCreate(false)} destroyOnClose>
         <Form layout="vertical" form={form}>
-          <Form.Item name="full_name" label="Full Name" rules={[{ required: true }]}>
+          <Form.Item name="full_name" label="Full Name" rules={[{ required: true, message: 'Name is required' }]} validateTrigger="onBlur">
             <Input />
           </Form.Item>
-          <Form.Item name="firm_id" label="Firm ID" rules={[{ required: true }]}>
+          <Form.Item name="firm_id" label="Firm ID" rules={[{ required: true, message: 'Firm is required' }]} validateTrigger="onBlur">
             <Input type="number" />
           </Form.Item>
-          <Form.Item name="license_number" label="License Number" rules={[{ required: true }]}>
+          <Form.Item name="license_number" label="License Number" rules={[{ required: true, message: 'License number is required' }]} validateTrigger="onBlur">
             <Input />
           </Form.Item>
           <Form.Item name="license_jurisdiction" label="Jurisdiction" rules={[{ required: true }]}>

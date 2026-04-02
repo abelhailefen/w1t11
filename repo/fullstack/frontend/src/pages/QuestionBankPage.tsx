@@ -33,7 +33,7 @@ export function QuestionBankPage() {
           <Select allowClear placeholder="Category" style={{ width: 180 }} value={category} onChange={setCategory} options={categories.map((c) => ({ label: c.name, value: c.id }))} />
           <Select allowClear placeholder="Tag" style={{ width: 180 }} value={tag} onChange={setTag} options={tags.map((t) => ({ label: t.name, value: t.id }))} />
         </Space>
-        <Table rowKey="id" dataSource={items} columns={[
+        <Table rowKey="id" dataSource={items} scroll={{ x: 'max-content' }} columns={[
           { title: 'ID', dataIndex: 'id' },
           { title: 'Preview', dataIndex: 'preview' },
           { title: 'Category', dataIndex: 'category_name' },

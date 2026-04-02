@@ -399,3 +399,52 @@ Module 7 completion checkpoint:
 - Analytics workbench runs, saves, reloads structured queries and supports CSV export path
 - PDF and CSV report endpoints verified
 - Swagger includes analytics/dashboard/report endpoints under `/api/v1/analytics*`, `/api/v1/dashboards*`, `/api/v1/reports*`, and admin org units under `/api/v1/admin/org-units*`
+
+## 18) Module 8 Delivery Snapshot
+
+Implemented scope for Audit & Data Governance includes:
+- `AuditLog` and `Alert` entities with repositories and migration for `alerts`
+- `AuditLogService` fail-safe logging (`never throw`) with 7-year retention expiry default
+- Doctrine lifecycle `AuditEventListener` on auditable entities (`User`, `Practitioner`, `CredentialSubmission`, `Appointment`, `Question`)
+- Service-level action audits wired into auth/workflow/scheduling/question/practitioner/admin reset flows
+- `AlertService` anomaly detection and deduplicated alert creation
+  - rejected credentials threshold by firm
+  - failed login threshold by username
+  - high-volume license reveal threshold by user
+- Commands:
+  - `app:alerts:check` anomaly sweep
+  - `app:audit:cleanup` retention cleanup (dry-run default, `--force` apply)
+- API controllers with OpenAPI annotations:
+  - `GET /api/v1/audit/logs`
+  - `GET /api/v1/alerts`
+  - `POST /api/v1/alerts/{id}/acknowledge`
+- Frontend admin experience:
+  - `AuditLogPage` with filters, pagination, expandable old/new payload details, CSV export
+  - `SystemAlertsPage` with severity badges, context modal, and acknowledge action
+  - Dashboard alert widget and admin navigation badge/count
+
+Module 8 completion checkpoint:
+- Login and practitioner create flows produce audit records visible via `GET /api/v1/audit/logs`
+- Alert sweep and acknowledge flow verified end-to-end via API and command
+- Retention cleanup dry-run verified via `app:audit:cleanup`
+- Swagger includes `/api/v1/audit/logs`, `/api/v1/alerts`, `/api/v1/alerts/{id}/acknowledge`
+
+## 19) Module 9 Delivery Snapshot
+
+Implemented scope for Polish & Integration includes:
+- `SystemSettingsPage` with full admin-editable operational settings (`/api/v1/admin/settings`)
+- Admin settings API (`GET/PUT /api/v1/admin/settings`) with OpenAPI annotations
+- Settings wiring into core services using DB-backed values with env fallback:
+  - `AuthService` (lockout attempts/duration)
+  - `BookingService` / `SlotGenerationService` (hold + slot minutes)
+  - `QuestionSimilarityService` (duplicate threshold)
+  - `AlertService` (rejection threshold/window)
+- Sidebar and route integration finalized for all module pages including admin governance/settings
+- Global API error notification handling in frontend interceptor
+- UX tightening pass for loading/disabled submit states, form validation triggers, toast feedback, and responsive table scrolling
+- Final docs pass in `README.md` and completion tracking through modules 3-9
+
+Module 9 completion checkpoint:
+- All module areas are reachable via role-appropriate navigation
+- System settings persist and influence runtime service behavior
+- Full Docker test run is executed as release gate via `./run_tests.sh`

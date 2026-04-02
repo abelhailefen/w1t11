@@ -16,10 +16,28 @@ final class Version20260403050000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE questions ADD current_version_id INT DEFAULT NULL, ADD duplicate_acknowledged TINYINT(1) NOT NULL DEFAULT 0');
+        $this->addSql("SET @has_current_version := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND COLUMN_NAME = 'current_version_id');");
+        $this->addSql("SET @add_current_version_sql := IF(@has_current_version = 0, 'ALTER TABLE questions ADD current_version_id INT DEFAULT NULL', 'SELECT 1');");
+        $this->addSql('PREPARE stmt FROM @add_current_version_sql');
+        $this->addSql('EXECUTE stmt');
+        $this->addSql('DEALLOCATE PREPARE stmt');
+
+        $this->addSql("SET @has_duplicate_ack := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND COLUMN_NAME = 'duplicate_acknowledged');");
+        $this->addSql("SET @add_duplicate_ack_sql := IF(@has_duplicate_ack = 0, 'ALTER TABLE questions ADD duplicate_acknowledged TINYINT(1) NOT NULL DEFAULT 0', 'SELECT 1');");
+        $this->addSql('PREPARE stmt FROM @add_duplicate_ack_sql');
+        $this->addSql('EXECUTE stmt');
+        $this->addSql('DEALLOCATE PREPARE stmt');
         $this->addSql('CREATE TABLE IF NOT EXISTS question_versions (id INT AUTO_INCREMENT NOT NULL, question_id INT NOT NULL, version_no INT NOT NULL, content_html LONGTEXT NOT NULL, plain_text_index LONGTEXT NOT NULL, difficulty INT NOT NULL, metadata_json LONGTEXT DEFAULT NULL, created_by INT NOT NULL, created_at DATETIME NOT NULL, UNIQUE INDEX UNIQ_QUESTION_VERSION_NO (question_id, version_no), INDEX IDX_QV_QUESTION (question_id), INDEX IDX_QV_CREATED_BY (created_by), PRIMARY KEY(id), CONSTRAINT FK_QV_QUESTION FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE, CONSTRAINT FK_QV_CREATED_BY FOREIGN KEY (created_by) REFERENCES users (id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
-        $this->addSql('ALTER TABLE questions ADD CONSTRAINT FK_QUESTIONS_CURRENT_VERSION FOREIGN KEY (current_version_id) REFERENCES question_versions (id) ON DELETE SET NULL');
-        $this->addSql('CREATE INDEX IDX_QUESTIONS_CURRENT_VERSION ON questions (current_version_id)');
+        $this->addSql("SET @has_fk := (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND CONSTRAINT_NAME = 'FK_QUESTIONS_CURRENT_VERSION');");
+        $this->addSql("SET @fk_sql := IF(@has_fk = 0, 'ALTER TABLE questions ADD CONSTRAINT FK_QUESTIONS_CURRENT_VERSION FOREIGN KEY (current_version_id) REFERENCES question_versions (id) ON DELETE SET NULL', 'SELECT 1');");
+        $this->addSql('PREPARE stmt FROM @fk_sql');
+        $this->addSql('EXECUTE stmt');
+        $this->addSql('DEALLOCATE PREPARE stmt');
+        $this->addSql("SET @has_idx := (SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND INDEX_NAME = 'IDX_QUESTIONS_CURRENT_VERSION');");
+        $this->addSql("SET @idx_sql := IF(@has_idx = 0, 'CREATE INDEX IDX_QUESTIONS_CURRENT_VERSION ON questions (current_version_id)', 'SELECT 1');");
+        $this->addSql('PREPARE stmt FROM @idx_sql');
+        $this->addSql('EXECUTE stmt');
+        $this->addSql('DEALLOCATE PREPARE stmt');
 
         $this->addSql('CREATE TABLE IF NOT EXISTS question_tag_map (question_id INT NOT NULL, tag_id INT NOT NULL, INDEX IDX_QTM_QUESTION (question_id), INDEX IDX_QTM_TAG (tag_id), PRIMARY KEY(question_id, tag_id), CONSTRAINT FK_QTM_QUESTION FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE, CONSTRAINT FK_QTM_TAG FOREIGN KEY (tag_id) REFERENCES question_tags (id) ON DELETE CASCADE) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
         $this->addSql('CREATE TABLE IF NOT EXISTS question_import_jobs (id INT AUTO_INCREMENT NOT NULL, initiated_by INT NOT NULL, file_name VARCHAR(255) NOT NULL, format VARCHAR(16) NOT NULL, status VARCHAR(20) NOT NULL, result_json LONGTEXT DEFAULT NULL, created_at DATETIME NOT NULL, completed_at DATETIME DEFAULT NULL, INDEX IDX_QIJ_USER (initiated_by), PRIMARY KEY(id), CONSTRAINT FK_QIJ_USER FOREIGN KEY (initiated_by) REFERENCES users (id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');

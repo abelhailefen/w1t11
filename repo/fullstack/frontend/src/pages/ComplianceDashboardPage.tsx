@@ -51,7 +51,7 @@ export function ComplianceDashboardPage() {
 
       <Row gutter={[12, 12]}>
         <Col span={6}><Card><Statistic title="Credential Review Volume" value={kpis.credential_review_volume || 0} /></Card></Col>
-        <Col span={6}><Card><Statistic title="Approval Rate" value={kpis.approval_rate || 0} suffix="%" /><Progress type="circle" percent={Math.round(kpis.approval_rate || 0)} width={64} /></Card></Col>
+        <Col span={6}><Card><Statistic title="Approval Rate" value={kpis.approval_rate || 0} suffix="%" /><Progress type="circle" percent={Math.round(kpis.approval_rate || 0)} size={64} /></Card></Col>
         <Col span={6}><Card><Statistic title="Rejection Rate" value={kpis.rejection_rate || 0} suffix="%" /></Card></Col>
         <Col span={6}><Card><Statistic title="Avg Review Turnaround" value={kpis.avg_review_turnaround_hours || 0} suffix="h" /></Card></Col>
         <Col span={6}><Card><Statistic title="Appointment Utilization" value={kpis.appointment_utilization_rate || 0} suffix="%" /></Card></Col>

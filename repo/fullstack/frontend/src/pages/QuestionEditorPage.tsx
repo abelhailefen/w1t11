@@ -20,6 +20,8 @@ export function QuestionEditorPage() {
   const [tags, setTags] = useState<any[]>([]);
   const [flags, setFlags] = useState<any[]>([]);
   const [versions, setVersions] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const load = async () => {
     const [c, t] = await Promise.all([questionApi.listCategories(), questionApi.listTags()]);
@@ -37,26 +39,47 @@ export function QuestionEditorPage() {
   useEffect(() => { load(); }, [id]);
 
   const saveDraft = async () => {
-    if (!categoryId) return;
-    if (id) {
-      await questionApi.update(Number(id), { content_html: contentHtml, category_id: categoryId, difficulty, tags: tagIds });
-    } else {
-      const response = await questionApi.create({ content_html: contentHtml, category_id: categoryId, difficulty, tags: tagIds });
-      navigate(`/questions/${response.data.id}`);
+    if (!contentHtml.trim()) {
+      message.error('Content is required');
+      return;
     }
-    message.success('Draft saved');
-    await load();
+    if (!categoryId) {
+      message.error('Category is required');
+      return;
+    }
+    if (difficulty < 1 || difficulty > 5) {
+      message.error('Difficulty must be 1-5');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (id) {
+        await questionApi.update(Number(id), { content_html: contentHtml, category_id: categoryId, difficulty, tags: tagIds });
+      } else {
+        const response = await questionApi.create({ content_html: contentHtml, category_id: categoryId, difficulty, tags: tagIds });
+        navigate(`/questions/${response.data.id}`);
+      }
+      message.success('Draft saved');
+      await load();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const publish = async (ack = false) => {
     if (!id) return;
-    const response = await questionApi.publish(Number(id), ack);
-    if (response.data.published) {
-      message.success('Published');
-      setFlags([]);
-    } else {
-      setFlags(response.data.warnings || []);
-      message.warning('Duplicate warnings found');
+    setPublishing(true);
+    try {
+      const response = await questionApi.publish(Number(id), ack);
+      if (response.data.published) {
+        message.success('Published');
+        setFlags([]);
+      } else {
+        setFlags(response.data.warnings || []);
+        message.warning('Duplicate warnings found');
+      }
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -71,8 +94,8 @@ export function QuestionEditorPage() {
             <Select mode="multiple" placeholder="Tags" style={{ width: 280 }} value={tagIds} onChange={setTagIds} options={tags.map((t) => ({ label: t.name, value: t.id }))} />
           </Space>
           <Space>
-            <Button onClick={saveDraft}>Save Draft</Button>
-            {id ? <Button type="primary" onClick={() => publish(false)}>Publish</Button> : null}
+            <Button onClick={saveDraft} loading={saving} disabled={saving}>Save Draft</Button>
+            {id ? <Button type="primary" onClick={() => publish(false)} loading={publishing} disabled={publishing}>Publish</Button> : null}
           </Space>
         </Space>
       </Card>

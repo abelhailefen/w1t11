@@ -11,7 +11,9 @@ class BookingService
 {
     public function __construct(
         private readonly Connection $connection,
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        private readonly AuditLogService $auditLogService,
+        private readonly SystemSettingService $systemSettingService
     ) {
     }
 
@@ -54,7 +56,9 @@ class BookingService
                 'cancelled_at' => null,
             ]);
 
-            return (int) $connection->lastInsertId();
+            $appointmentId = (int) $connection->lastInsertId();
+            $this->auditLogService->log($userId, 'CREATE', 'Appointment', $appointmentId, null, ['slot_id' => $slotId], null);
+            return $appointmentId;
         });
     }
 
@@ -146,6 +150,7 @@ class BookingService
                 'changed_by' => $userId,
                 'changed_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
             ]);
+            $this->auditLogService->log($userId, 'RESCHEDULE', 'Appointment', $appointmentId, ['slot_id' => (int) $oldSlot['id']], ['slot_id' => $newSlotId], null);
         });
     }
 
@@ -185,6 +190,7 @@ class BookingService
                 'cancelled_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
                 'held_until' => null,
             ], ['id' => $appointmentId]);
+            $this->auditLogService->log($userId, 'CANCEL', 'Appointment', $appointmentId, ['state' => (string) $appointment['state']], ['state' => 'CANCELLED'], null);
         });
     }
 
@@ -232,7 +238,8 @@ class BookingService
 
     private function holdMinutes(): int
     {
-        return max(1, (int) ($_ENV['APPOINTMENT_HOLD_MINUTES'] ?? $_SERVER['APPOINTMENT_HOLD_MINUTES'] ?? 5));
+        $fallback = max(1, (int) ($_ENV['APPOINTMENT_HOLD_MINUTES'] ?? $_SERVER['APPOINTMENT_HOLD_MINUTES'] ?? 5));
+        return max(1, $this->systemSettingService->getInt('appointment_hold_minutes', $fallback));
     }
 
     private function isAdmin(int $userId): bool

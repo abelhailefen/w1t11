@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { notification } from 'antd';
 import { getToken } from './authStore';
 
 let unauthorizedHandler: (() => void) | null = null;
@@ -28,6 +29,10 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    const message = error?.response?.data?.message;
+    if (message && error?.response?.status !== 401) {
+      notification.error({ message });
+    }
     if (error?.response?.status === 401 && unauthorizedHandler) {
       unauthorizedHandler();
     }

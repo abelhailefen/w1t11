@@ -14,6 +14,7 @@ export function PractitionerDetailPage() {
   const [files, setFiles] = useState<CredentialFileItem[]>([]);
   const [openReveal, setOpenReveal] = useState(false);
   const [loadingReveal, setLoadingReveal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
 
   const canReveal = auth.hasRole(['ROLE_CREDENTIAL_REVIEWER', 'ROLE_SYSTEM_ADMIN']);
@@ -36,9 +37,14 @@ export function PractitionerDetailPage() {
 
   const save = async () => {
     const values = await form.validateFields();
-    await practitionerApi.updatePractitioner(practitionerId, values);
-    message.success('Practitioner updated');
-    await load();
+    setSaving(true);
+    try {
+      await practitionerApi.updatePractitioner(practitionerId, values);
+      message.success('Practitioner updated');
+      await load();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const reveal = async () => {
@@ -82,7 +88,7 @@ export function PractitionerDetailPage() {
 
       <Card title="Edit Practitioner">
         <Form form={form} layout="vertical">
-          <Form.Item name="full_name" label="Full Name" rules={[{ required: true }]}>
+          <Form.Item name="full_name" label="Full Name" rules={[{ required: true, message: 'Name is required' }]} validateTrigger="onBlur">
             <Input />
           </Form.Item>
           <Form.Item name="license_jurisdiction" label="Jurisdiction" rules={[{ required: true }]}>
@@ -94,7 +100,7 @@ export function PractitionerDetailPage() {
           <Form.Item name="contact_phone" label="Phone">
             <Input />
           </Form.Item>
-          <Button type="primary" onClick={save}>
+          <Button type="primary" onClick={save} loading={saving} disabled={saving}>
             Save
           </Button>
         </Form>

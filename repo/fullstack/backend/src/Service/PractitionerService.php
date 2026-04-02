@@ -24,7 +24,9 @@ class PractitionerService
         private readonly EncryptionService $encryptionService,
         private readonly FileUploadService $fileUploadService,
         private readonly CredentialWorkflowService $credentialWorkflowService,
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        private readonly AuditLogService $auditLogService,
+        private readonly AlertService $alertService
     ) {
     }
 
@@ -131,6 +133,8 @@ class PractitionerService
             ->setAccessedAt(new \DateTimeImmutable());
         $this->entityManager->persist($log);
         $this->entityManager->flush();
+        $this->auditLogService->log((int) $user->getId(), 'LICENSE_REVEAL', 'Practitioner', (int) $practitioner->getId(), null, ['reason' => $reason], $ipAddress);
+        $this->alertService->checkLicenseRevealForUser((int) $user->getId());
 
         return [
             'license_number' => $license,

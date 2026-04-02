@@ -125,12 +125,14 @@ class QuestionController extends ApiController
     #[OA\Get(path: '/api/v1/questions/export', tags: ['Questions'], security: [['Bearer' => []]], responses: [new OA\Response(response: 200, description: 'Export file')])]
     public function export(Request $request): BinaryFileResponse|JsonResponse
     {
+        /** @var User|null $user */
+        $user = $this->getUser();
         $format = (string) $request->query->get('format', 'csv');
         if (!in_array($format, ['csv', 'xlsx'], true)) {
             return $this->error('Invalid format', 400);
         }
         try {
-            $result = $this->importExportService->exportToFile($request->query->all(), $format);
+            $result = $this->importExportService->exportToFile($request->query->all(), $format, $user?->getId());
         } catch (ApiException $e) {
             return $this->fromApiException($e);
         }

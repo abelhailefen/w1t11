@@ -11,6 +11,7 @@ type Props = {
 
 export function BookingDrawer({ open, slot, onClose, onBooked }: Props) {
   const [holding, setHolding] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [appointmentId, setAppointmentId] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
 
@@ -56,6 +57,7 @@ export function BookingDrawer({ open, slot, onClose, onBooked }: Props) {
 
   const confirm = async () => {
     if (!appointmentId) return;
+    setConfirming(true);
     try {
       await appointmentApi.book(appointmentId);
       message.success('Appointment booked');
@@ -65,6 +67,8 @@ export function BookingDrawer({ open, slot, onClose, onBooked }: Props) {
       setSecondsLeft(0);
     } catch (error: any) {
       message.error(error?.response?.data?.message || 'Booking failed');
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -81,7 +85,7 @@ export function BookingDrawer({ open, slot, onClose, onBooked }: Props) {
           ) : (
             <Space direction="vertical" style={{ width: '100%' }}>
               <Typography.Text data-testid="countdown">Time left: {secondsLeft}s</Typography.Text>
-              {expired ? <Alert type="warning" message="Hold expired" /> : <Button type="primary" onClick={confirm}>Confirm Booking</Button>}
+              {expired ? <Alert type="warning" message="Hold expired" /> : <Button type="primary" loading={confirming} disabled={confirming} onClick={confirm}>Confirm Booking</Button>}
             </Space>
           )}
         </Space>

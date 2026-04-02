@@ -236,8 +236,13 @@ class AuthController extends ApiController
             new OA\Response(response: 401, description: 'Unauthorized')
         ]
     )]
-    public function logout(): JsonResponse
+    public function logout(Request $request): JsonResponse
     {
+        /** @var User|null $user */
+        $user = $this->getUser();
+        if ($user) {
+            $this->authService->logout($user, $request->getClientIp());
+        }
         return $this->ok(['message' => 'Logged out']);
     }
 

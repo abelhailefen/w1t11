@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Enum\UserRole;
+use App\Service\AuditLogService;
 use App\Service\StepUpAuthService;
 use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
@@ -21,7 +22,8 @@ class AdminUserController extends ApiController
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly StepUpAuthService $stepUpAuthService,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly AuditLogService $auditLogService
     ) {
     }
 
@@ -183,6 +185,9 @@ class AdminUserController extends ApiController
         $user->setPassword($this->passwordHasher->hashPassword($user, $newPassword));
         $user->setUpdatedAt(new \DateTimeImmutable());
         $this->entityManager->flush();
+        /** @var User|null $actor */
+        $actor = $this->getUser() instanceof User ? $this->getUser() : null;
+        $this->auditLogService->log($actor?->getId(), 'PASSWORD_RESET', 'User', $user->getId(), null, ['target_username' => $user->getUsername()], $request->getClientIp());
 
         return $this->ok([
             'message' => 'Password reset successful',

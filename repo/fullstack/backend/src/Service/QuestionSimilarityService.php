@@ -6,7 +6,10 @@ use Doctrine\DBAL\Connection;
 
 class QuestionSimilarityService
 {
-    public function __construct(private readonly Connection $connection)
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly SystemSettingService $systemSettingService
+    )
     {
     }
 
@@ -20,7 +23,8 @@ class QuestionSimilarityService
             throw new ApiException('Question version not found', 404);
         }
 
-        $threshold = (float) ($_ENV['DUPLICATE_SIMILARITY_THRESHOLD'] ?? $_SERVER['DUPLICATE_SIMILARITY_THRESHOLD'] ?? 80);
+        $fallback = (int) ($_ENV['DUPLICATE_SIMILARITY_THRESHOLD'] ?? $_SERVER['DUPLICATE_SIMILARITY_THRESHOLD'] ?? 80);
+        $threshold = (float) $this->systemSettingService->getInt('duplicate_similarity_threshold', $fallback);
         $published = $this->connection->fetchAllAssociative(
             'SELECT q.id as question_id, qv.id as version_id, qv.plain_text_index, qv.content_html
              FROM questions q

@@ -52,6 +52,8 @@ class AppSeedCommand extends Command
             'duplicate_similarity_threshold' => '80',
             'alert_rejection_threshold' => '5',
             'alert_rejection_window_hours' => '24',
+            'login_lockout_attempts' => '5',
+            'login_lockout_duration_minutes' => '15',
         ];
 
         foreach ($settings as $key => $value) {
@@ -71,6 +73,18 @@ class AppSeedCommand extends Command
         $this->seedCredentialWorkflows();
         $this->seedSchedulingData();
         $this->seedQuestionBankData();
+
+        $this->connection->insert('audit_logs', [
+            'occurred_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'user_id' => null,
+            'action_type' => 'CREATE',
+            'entity_type' => 'SeedData',
+            'entity_id' => null,
+            'old_value_json' => null,
+            'new_value_json' => json_encode(['source' => 'app:seed:initial'], JSON_THROW_ON_ERROR),
+            'ip_address' => null,
+            'retention_expires_at' => (new \DateTimeImmutable('+7 years'))->format('Y-m-d H:i:s'),
+        ]);
 
         $output->writeln('Initial seed complete.');
         return Command::SUCCESS;
@@ -381,21 +395,20 @@ class AppSeedCommand extends Command
             ['Reporting', 'Reporting and filings'],
         ];
         foreach ($categories as [$name, $desc]) {
-            if (!$this->connection->fetchOne('SELECT id FROM question_categories WHERE name = :n', ['n' => $name])) {
-                $this->connection->insert('question_categories', [
-                    'name' => $name,
-                    'description' => $desc,
-                    'parent_id' => null,
-                    'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
-                ]);
-            }
+            $this->connection->executeStatement('INSERT IGNORE INTO question_categories (name, description, parent_id, created_at) VALUES (:name, :description, :parent_id, :created_at)', [
+                'name' => $name,
+                'description' => $desc,
+                'parent_id' => null,
+                'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            ]);
         }
 
         $tags = ['compliance', 'audit', 'ethics', 'risk', 'licensing', 'privacy', 'fraud', 'client', 'reporting', 'controls'];
         foreach ($tags as $tag) {
-            if (!$this->connection->fetchOne('SELECT id FROM question_tags WHERE name = :n', ['n' => $tag])) {
-                $this->connection->insert('question_tags', ['name' => $tag, 'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s')]);
-            }
+            $this->connection->executeStatement('INSERT IGNORE INTO question_tags (name, created_at) VALUES (:name, :created_at)', [
+                'name' => $tag,
+                'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            ]);
         }
 
         $contentAdminId = (int) $this->connection->fetchOne('SELECT id FROM users WHERE username = :u', ['u' => 'content_admin']);

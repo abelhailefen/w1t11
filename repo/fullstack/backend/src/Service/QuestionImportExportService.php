@@ -12,7 +12,11 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class QuestionImportExportService
 {
-    public function __construct(private readonly Connection $connection, private readonly QuestionService $questionService)
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly QuestionService $questionService,
+        private readonly AuditLogService $auditLogService
+    )
     {
     }
 
@@ -74,10 +78,11 @@ class QuestionImportExportService
             'completed_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
         ], ['id' => $jobId]);
 
+        $this->auditLogService->log((int) $user->getId(), 'IMPORT', 'Question', null, null, ['job_id' => $jobId, 'status' => $hasError ? 'failed' : 'completed'], null);
         return ['id' => $jobId, 'status' => $hasError ? 'failed' : 'completed', 'results' => $results];
     }
 
-    public function exportToFile(array $filters, string $format): array
+    public function exportToFile(array $filters, string $format, ?int $userId = null): array
     {
         $data = $this->questionService->list($filters)['items'];
         $spreadsheet = new Spreadsheet();
@@ -100,11 +105,13 @@ class QuestionImportExportService
         if ($format === 'xlsx') {
             $path = $tmp . '.xlsx';
             (new Xlsx($spreadsheet))->save($path);
+            $this->auditLogService->log($userId, 'EXPORT', 'Question', null, null, ['format' => 'xlsx'], null);
             return ['path' => $path, 'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'filename' => 'questions.xlsx'];
         }
 
         $path = $tmp . '.csv';
         (new Csv($spreadsheet))->save($path);
+        $this->auditLogService->log($userId, 'EXPORT', 'Question', null, null, ['format' => 'csv'], null);
         return ['path' => $path, 'mime' => 'text/csv', 'filename' => 'questions.csv'];
     }
 }

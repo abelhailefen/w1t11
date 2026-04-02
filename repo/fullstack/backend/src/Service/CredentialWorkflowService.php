@@ -19,7 +19,9 @@ class CredentialWorkflowService
         private readonly CredentialVersionRepository $versionRepository,
         private readonly PractitionerRepository $practitionerRepository,
         private readonly StepUpAuthService $stepUpAuthService,
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        private readonly AuditLogService $auditLogService,
+        private readonly AlertService $alertService
     ) {
     }
 
@@ -87,7 +89,9 @@ class CredentialWorkflowService
             throw new ApiException('Rejection comment is required', 400);
         }
 
-        return $this->transition($submission, CredentialState::REJECTED, $user, [], $comment);
+        $result = $this->transition($submission, CredentialState::REJECTED, $user, [], $comment);
+        $this->alertService->checkRejectedCredentialsForFirm((int) $submission->getPractitioner()->getFirm()->getId());
+        return $result;
     }
 
     public function requestResubmission(CredentialSubmission $submission, User $user): CredentialSubmission
@@ -170,6 +174,21 @@ class CredentialWorkflowService
 
         $this->createVersion($submission, $targetState, $user, $payload, $comment, $now);
         $this->entityManager->flush();
+
+        $action = match ($targetState) {
+            CredentialState::APPROVED => 'APPROVE',
+            CredentialState::REJECTED => 'REJECT',
+            default => null,
+        };
+        if (($payload['action'] ?? null) === 'ROLLBACK') {
+            $action = 'ROLLBACK';
+        }
+        if ($action) {
+            $this->auditLogService->log((int) $user->getId(), $action, 'CredentialSubmission', (int) $submission->getId(), null, [
+                'state' => $targetState->value,
+                'comment' => $comment,
+            ], null);
+        }
 
         return $submission;
     }

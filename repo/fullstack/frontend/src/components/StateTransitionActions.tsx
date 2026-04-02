@@ -32,8 +32,8 @@ export function StateTransitionActions({
     try {
       await action();
       message.success(successText);
-    } catch {
-      message.error('Action failed');
+    } catch (error: any) {
+      message.error(error?.response?.data?.message || 'Action failed');
     } finally {
       setLoadingAction(null);
     }

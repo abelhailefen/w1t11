@@ -26,6 +26,15 @@ export function AnalyticsWorkbenchPage() {
     },
   } as Record<string, unknown>;
 
+  const getRowKey = (record: Record<string, unknown>): string => {
+    const preferred = record.id ?? record.uuid ?? record.group_value ?? record.name;
+    if (preferred !== undefined && preferred !== null && preferred !== '') {
+      return String(preferred);
+    }
+
+    return Object.values(record).map((value) => String(value ?? '')).join('|');
+  };
+
   const run = async () => {
     const response = await analyticsApi.runQuery(definition);
     setRows(response.data.items || []);
@@ -89,7 +98,7 @@ export function AnalyticsWorkbenchPage() {
         </Button>
       </Space>
 
-      <Table rowKey={(_, idx) => String(idx)} dataSource={rows} columns={Object.keys(rows[0] || {}).map((k) => ({ title: k, dataIndex: k }))} />
+      <Table rowKey={getRowKey} dataSource={rows} columns={Object.keys(rows[0] || {}).map((k) => ({ title: k, dataIndex: k }))} />
 
       <Modal open={saveOpen} onCancel={() => setSaveOpen(false)} onOk={async () => {
         await analyticsApi.saveQuery(saveName || 'Saved Query', definition);

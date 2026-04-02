@@ -7,7 +7,10 @@ use Doctrine\DBAL\Connection;
 
 class SlotGenerationService
 {
-    public function __construct(private readonly Connection $connection)
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly SystemSettingService $systemSettingService
+    )
     {
     }
 
@@ -77,7 +80,8 @@ class SlotGenerationService
 
     private function defaultSlotMinutes(): int
     {
-        return max(5, (int) ($_ENV['APPOINTMENT_SLOT_MINUTES'] ?? $_SERVER['APPOINTMENT_SLOT_MINUTES'] ?? 30));
+        $fallback = max(5, (int) ($_ENV['APPOINTMENT_SLOT_MINUTES'] ?? $_SERVER['APPOINTMENT_SLOT_MINUTES'] ?? 30));
+        return max(5, $this->systemSettingService->getInt('appointment_slot_minutes', $fallback));
     }
 
     private function defaultLocationId(): int

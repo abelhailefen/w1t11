@@ -10,7 +10,8 @@ class QuestionService
     public function __construct(
         private readonly Connection $connection,
         private readonly QuestionSimilarityService $similarityService,
-        private readonly StepUpAuthService $stepUpAuthService
+        private readonly StepUpAuthService $stepUpAuthService,
+        private readonly AuditLogService $auditLogService
     ) {
     }
 
@@ -123,6 +124,7 @@ class QuestionService
             'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
             'duplicate_acknowledged' => 1,
         ], ['id' => $id]);
+        $this->auditLogService->log((int) $user->getId(), 'PUBLISH', 'Question', $id, ['status' => 'DRAFT'], ['status' => 'PUBLISHED'], null);
 
         return ['published' => true, 'warnings' => $flags];
     }
@@ -172,6 +174,7 @@ class QuestionService
             'justification' => $justification,
         ]);
         $this->connection->update('questions', ['current_version_id' => $newVersionId, 'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s')], ['id' => $questionId]);
+        $this->auditLogService->log((int) $user->getId(), 'ROLLBACK', 'Question', $questionId, null, ['target_version' => $targetVersionNo, 'justification' => $justification], null);
 
         return $this->detail($questionId);
     }
