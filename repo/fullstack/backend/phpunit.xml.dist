@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php" colors="true">
+  <testsuites>
+    <testsuite name="unit">
+      <directory>tests/Unit</directory>
+      <directory>../unit_tests/php</directory>
+    </testsuite>
+    <testsuite name="api">
+      <directory>tests/Api</directory>
+      <directory>../API_tests/php</directory>
+    </testsuite>
+  </testsuites>
+  <php>
+    <server name="APP_ENV" value="test"/>
+    <server name="APP_DEBUG" value="1"/>
+  </php>
+</phpunit>

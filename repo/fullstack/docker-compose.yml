@@ -1,0 +1,84 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: regops-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: regops
+      MYSQL_USER: regops_user
+      MYSQL_PASSWORD: regops_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: regops-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+      APP_SECRET: changeme_app_secret
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: regops
+      DB_USER: regops_user
+      DB_PASSWORD: regops_password
+      DATABASE_URL: mysql://regops_user:regops_password@mysql:3306/regops?serverVersion=8.0
+      JWT_SECRET_KEY: /var/www/html/config/jwt/private.pem
+      JWT_PUBLIC_KEY: /var/www/html/config/jwt/public.pem
+      JWT_PASSPHRASE: changeme_jwt_passphrase
+      LICENSE_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+      DUPLICATE_SIMILARITY_THRESHOLD: 80
+      APPOINTMENT_SLOT_MINUTES: 30
+      APPOINTMENT_HOLD_MINUTES: 5
+      ALERT_REJECTION_THRESHOLD: 5
+      ALERT_REJECTION_WINDOW_HOURS: 24
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www/html
+      - ./storage/uploads:/var/app/uploads
+    networks:
+      - app_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: regops-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - app_net
+
+  frontend-test:
+    image: node:18
+    container_name: regops-frontend-test
+    working_dir: /app/frontend
+    command: sh -c "npm install && tail -f /dev/null"
+    volumes:
+      - ./frontend:/app/frontend
+      - ./unit_tests:/app/unit_tests
+    networks:
+      - app_net
+
+volumes:
+  mysql_data:
+
+networks:
+  app_net:
+    name: regops-app-network

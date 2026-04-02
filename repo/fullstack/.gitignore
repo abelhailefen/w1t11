@@ -1,0 +1,7 @@
+backend/vendor/
+backend/var/
+backend/config/jwt/
+frontend/node_modules/
+frontend/dist/
+storage/uploads/*
+!storage/uploads/.gitkeep

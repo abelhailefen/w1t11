@@ -1,0 +1,5 @@
+#!/usr/bin/env php
+<?php
+
+passthru('vendor/bin/phpunit ' . implode(' ', array_slice($argv, 1)), $exitCode);
+exit($exitCode);

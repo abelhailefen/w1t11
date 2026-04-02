@@ -1,0 +1,25 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(180deg, #f0f5ff 0%, #f8fafc 55%, #ffffff 100%);
+}
+
+.brand {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 18px 20px;
+  letter-spacing: 0.3px;
+}
+
+.app-header {
+  background: #fff;
+  padding: 0 24px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+}
+
+.app-content {
+  margin: 24px;
+}
