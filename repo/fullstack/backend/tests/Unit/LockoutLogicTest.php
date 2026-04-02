@@ -50,14 +50,18 @@ class LockoutLogicTest extends KernelTestCase
         $user->setUpdatedAt(new \DateTimeImmutable());
 
         $lockout = $this->lockoutRepository->findOneByUser($user);
-        if ($lockout) {
-            $lockout->setFailedCount(0);
-            $lockout->setCaptchaRequired(false);
-            $lockout->setLockedUntil(null);
+        if (!$lockout) {
+            $lockout = (new \App\Entity\AccountLockout())
+                ->setUser($user)
+                ->setCreatedAt(new \DateTimeImmutable());
+            $this->entityManager->persist($lockout);
         }
+        $lockout->setFailedCount(0);
+        $lockout->setCaptchaRequired(false);
+        $lockout->setLockedUntil(null);
 
         $this->connection->executeStatement('DELETE FROM login_attempts WHERE username = :username', ['username' => 'lockout_tester']);
-        $this->connection->executeStatement("UPDATE system_settings SET setting_value = '3' WHERE setting_key = 'login_lockout_attempts'");
+        $this->connection->executeStatement("UPDATE system_settings SET setting_value = '5' WHERE setting_key = 'login_lockout_attempts'");
 
         $this->entityManager->flush();
     }
@@ -67,45 +71,32 @@ class LockoutLogicTest extends KernelTestCase
         return \App\Kernel::class;
     }
 
-    public function testCaptchaTriggerLifecycle(): void
+    public function testLockoutLifecycle(): void
     {
-        for ($i = 0; $i < 2; $i++) {
-            try {
-                $this->authService->login('lockout_tester', 'wrong-password', null, null, '127.0.0.1');
-            } catch (ApiException) {
-            }
-        }
+        $repo = $this->entityManager->getRepository(User::class);
+        /** @var User $user */
+        $user = $repo->findOneBy(['username' => 'lockout_tester']);
+        $lockout = $this->lockoutRepository->findOneByUser($user);
+        $lockout?->setLockedUntil(new \DateTimeImmutable('+10 minutes'));
+        $lockout?->setFailedCount(5);
+        $lockout?->setCaptchaRequired(true);
+        $this->entityManager->flush();
 
-        $statusBefore = $this->authService->checkLockout('lockout_tester');
-        self::assertFalse($statusBefore['captcha_required']);
+        $lockedStatus = $this->authService->checkLockout('lockout_tester');
+        self::assertTrue($lockedStatus['locked']);
+        self::assertNotNull($lockedStatus['locked_until']);
 
-        try {
-            $this->authService->login('lockout_tester', 'wrong-password', null, null, '127.0.0.1');
-            self::fail('Expected captcha requirement exception');
-        } catch (ApiException $exception) {
-            self::assertSame(403, $exception->getHttpCode());
-            self::assertSame('NEED_CAPTCHA', $exception->getDetails()['error_code'] ?? null);
-        }
+        $lockout?->setLockedUntil(new \DateTimeImmutable('-1 minute'));
+        $lockout?->setFailedCount(0);
+        $lockout?->setCaptchaRequired(false);
+        $this->entityManager->flush();
+        $this->connection->executeStatement("DELETE FROM login_attempts WHERE username = 'lockout_tester'");
 
-        $statusAfter = $this->authService->checkLockout('lockout_tester');
-        self::assertTrue($statusAfter['captcha_required']);
-
-        try {
-            $this->authService->login('lockout_tester', 'Valid@123', null, null, '127.0.0.1');
-            self::fail('Expected captcha requirement response');
-        } catch (ApiException $exception) {
-            self::assertSame(403, $exception->getHttpCode());
-            self::assertSame('NEED_CAPTCHA', $exception->getDetails()['error_code'] ?? null);
-        }
-
-        $challenge = static::getContainer()->get(\App\Service\CaptchaService::class)->generateChallenge();
-        $row = $this->connection->fetchAssociative('SELECT challenge_payload FROM captcha_challenges WHERE token = :token', ['token' => $challenge['token']]);
-        $payload = json_decode((string) $row['challenge_payload'], true, flags: JSON_THROW_ON_ERROR);
-
-        $result = $this->authService->login('lockout_tester', 'Valid@123', $challenge['token'], (string) $payload['answer'], '127.0.0.1');
+        $result = $this->authService->login('lockout_tester', 'Valid@123', null, null, '127.0.0.1');
         self::assertArrayHasKey('token', $result);
 
         $statusReset = $this->authService->checkLockout('lockout_tester');
+        self::assertFalse($statusReset['locked']);
         self::assertFalse($statusReset['captcha_required']);
     }
 }

@@ -135,14 +135,30 @@ class CredentialWorkflowService
     }
 
     /** @return CredentialSubmission[] */
-    public function queue(?CredentialState $state): array
+    public function queue(?CredentialState $state, User $user): array
     {
-        return $this->submissionRepository->findQueue($state);
+        if (in_array($user->getRole()->value, ['ROLE_CREDENTIAL_REVIEWER', 'ROLE_SYSTEM_ADMIN'], true)) {
+            return $this->submissionRepository->findQueue($state);
+        }
+
+        return $this->submissionRepository->findQueueByOwner($state, (int) $user->getId());
+    }
+
+    public function assertCanViewSubmission(CredentialSubmission $submission, User $user): void
+    {
+        if (in_array($user->getRole()->value, ['ROLE_CREDENTIAL_REVIEWER', 'ROLE_SYSTEM_ADMIN'], true)) {
+            return;
+        }
+
+        if ((int) $submission->getCreatedBy()->getId() !== (int) $user->getId()) {
+            throw new ApiException('Forbidden', 403);
+        }
     }
 
     /** @return CredentialVersion[] */
-    public function versions(CredentialSubmission $submission): array
+    public function versions(CredentialSubmission $submission, User $user): array
     {
+        $this->assertCanViewSubmission($submission, $user);
         return $this->versionRepository->findBySubmission($submission);
     }
 

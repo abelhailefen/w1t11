@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Enum\UserRole;
 use App\Service\ApiException;
 use App\Service\AuthService;
 use App\Service\CaptchaService;
@@ -30,7 +29,7 @@ class AuthController extends ApiController
     #[OA\Post(
         path: '/api/v1/auth/register',
         summary: 'Register a user',
-        description: 'Creates a new user account with an optional role.',
+        description: 'Creates a new user account with role ROLE_USER.',
         tags: ['Auth'],
         security: [],
         requestBody: new OA\RequestBody(
@@ -42,8 +41,7 @@ class AuthController extends ApiController
                     new OA\Property(property: 'password', type: 'string', minLength: 8, example: 'StrongPass@123'),
                     new OA\Property(property: 'full_name', type: 'string', minLength: 2, maxLength: 255, example: 'Jordan Blake'),
                     new OA\Property(property: 'firm_affiliation', type: 'string', minLength: 2, maxLength: 255, example: 'Eagle Point Legal'),
-                    new OA\Property(property: 'license_number', type: 'string', minLength: 4, maxLength: 120, example: 'NY-123456'),
-                    new OA\Property(property: 'role', type: 'string', example: 'ROLE_USER')
+                    new OA\Property(property: 'license_number', type: 'string', minLength: 4, maxLength: 120, example: 'NY-123456')
                 ]
             )
         ),
@@ -102,8 +100,7 @@ class AuthController extends ApiController
             'full_name' => [new Assert\Required([new Assert\NotBlank(), new Assert\Length(min: 2, max: 255)])],
             'firm_affiliation' => [new Assert\Required([new Assert\NotBlank(), new Assert\Length(min: 2, max: 255)])],
             'license_number' => [new Assert\Required([new Assert\NotBlank(), new Assert\Length(min: 4, max: 120)])],
-            'role' => [new Assert\Optional([new Assert\Choice(array_map(fn (UserRole $role) => $role->value, UserRole::cases()))])],
-        ]));
+        ], allowExtraFields: true));
 
         if (count($violations) > 0) {
             return $this->validationError($violations);
@@ -113,7 +110,6 @@ class AuthController extends ApiController
             $user = $this->authService->register(
                 $payload['username'],
                 $payload['password'],
-                $payload['role'] ?? UserRole::ROLE_USER->value,
                 $payload['full_name'],
                 $payload['firm_affiliation'],
                 $payload['license_number']
@@ -173,7 +169,8 @@ class AuthController extends ApiController
             ),
             new OA\Response(response: 400, description: 'Validation or human verification error'),
             new OA\Response(response: 401, description: 'Invalid credentials'),
-            new OA\Response(response: 403, description: 'CAPTCHA required or account disabled')
+            new OA\Response(response: 403, description: 'CAPTCHA required or account disabled'),
+            new OA\Response(response: 423, description: 'Account locked')
         ]
     )]
     public function login(Request $request): JsonResponse

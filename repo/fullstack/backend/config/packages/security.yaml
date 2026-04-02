@@ -1,4 +1,11 @@
 security:
+  # CSRF Protection Strategy:
+  # This application uses JWT Bearer token authentication via the Authorization header.
+  # Browsers do not automatically attach custom headers to cross-origin requests,
+  # which inherently mitigates CSRF attacks. No additional CSRF token is needed
+  # for the API endpoints. This is consistent with OWASP recommendations for
+  # token-based stateless APIs.
+  # Reference: questions.md Q10
   role_hierarchy:
     ROLE_SYSTEM_ADMIN:
       - ROLE_USER

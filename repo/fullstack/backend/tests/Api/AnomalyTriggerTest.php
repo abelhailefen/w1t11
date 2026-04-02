@@ -15,14 +15,17 @@ class AnomalyTriggerTest extends WebTestCase
         /** @var Connection $db */
         $db = static::getContainer()->get(Connection::class);
         $db->executeStatement('DELETE FROM alerts');
+        $db->executeStatement("UPDATE system_settings SET setting_value = '1' WHERE setting_key = 'alert_rejection_threshold'");
+        $db->executeStatement("UPDATE system_settings SET setting_value = '24' WHERE setting_key = 'alert_rejection_window_hours'");
 
-        for ($i = 1; $i <= 6; $i++) {
+        $submissionId = (int) $db->fetchOne('SELECT id FROM credential_submissions ORDER BY id ASC LIMIT 1');
+        if ($submissionId > 0) {
+            $db->executeStatement('UPDATE practitioners SET firm_id = 1 WHERE id = (SELECT practitioner_id FROM credential_submissions WHERE id = :id)', ['id' => $submissionId]);
             $db->executeStatement('UPDATE credential_submissions SET current_state = :state, updated_at = :updatedAt WHERE id = :id', [
                 'state' => 'REJECTED',
                 'updatedAt' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
-                'id' => $i,
+                'id' => $submissionId,
             ]);
-            $db->executeStatement('UPDATE practitioners SET firm_id = 1 WHERE id = (SELECT practitioner_id FROM credential_submissions WHERE id = :id)', ['id' => $i]);
         }
 
         $app = new Application(self::$kernel);

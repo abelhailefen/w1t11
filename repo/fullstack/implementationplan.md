@@ -448,3 +448,13 @@ Module 9 completion checkpoint:
 - All module areas are reachable via role-appropriate navigation
 - System settings persist and influence runtime service behavior
 - Full Docker test run is executed as release gate via `./run_tests.sh`
+
+## 20) Fix Pass Remediation Snapshot
+
+Resolved delivery acceptance findings:
+- **Blocker (Privilege Escalation):** Public registration no longer accepts role assignment; backend hard-sets `ROLE_USER`, OpenAPI register schema removed `role`, and role elevation remains admin-only via `PATCH /api/v1/admin/users/{id}/role`.
+- **High (Credential Object Authorization):** Credential read authorization is now object-scoped for `/api/v1/credentials/{id}/versions` and queue behavior is role-aware (reviewer/admin = global queue, regular user = own submissions only).
+- **High (Lockout Policy):** Lockout lifecycle implemented: 5 failed attempts produce 15-minute lock (`423`), lock expiry resets counters, CAPTCHA gate remains enforced, and successful login clears lock state.
+- **High (License Encryption):** Registration now uses `EncryptionService::encrypt()` for license data. Added one-time remediation command `app:migrate:fix-license-encryption` and wired it into container startup after migration/seed.
+- **High (Compliance KPI Naming):** Compliance API now returns both prompt-literal KPI names and existing domain KPI fields; dashboard and compliance CSV/PDF exports include the expanded KPI set.
+- **Medium (CSRF Documentation):** Added explicit CSRF strategy rationale in `backend/config/packages/security.yaml` and README Security section for JWT header-based stateless auth.

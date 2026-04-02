@@ -17,7 +17,6 @@ class RegisterTest extends WebTestCase
             'full_name' => 'Test Practitioner',
             'firm_affiliation' => 'Eagle Point Legal',
             'license_number' => 'LIC-12345',
-            'role' => 'ROLE_USER',
         ], JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(201);
 

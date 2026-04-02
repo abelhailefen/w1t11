@@ -34,4 +34,21 @@ class CredentialSubmissionRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    /** @return CredentialSubmission[] */
+    public function findQueueByOwner(?CredentialState $state, int $ownerId): array
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->join('s.practitioner', 'p')
+            ->join('p.firm', 'f')
+            ->andWhere('IDENTITY(s.createdBy) = :ownerId')
+            ->setParameter('ownerId', $ownerId)
+            ->orderBy('s.updatedAt', 'DESC');
+
+        if ($state) {
+            $qb->andWhere('s.currentState = :state')->setParameter('state', $state);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

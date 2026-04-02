@@ -11,6 +11,7 @@ fi
 
 php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console app:seed:initial --no-interaction
+php bin/console app:migrate:fix-license-encryption --no-interaction
 
 chown -R www-data:www-data /var/www/html/var
 mkdir -p "${CREDENTIAL_UPLOAD_DIR:-/var/app/uploads/credentials}"

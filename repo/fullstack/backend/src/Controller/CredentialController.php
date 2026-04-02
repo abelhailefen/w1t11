@@ -133,12 +133,22 @@ class CredentialController extends ApiController
     #[OA\Get(path: '/api/v1/credentials/{id}/versions', tags: ['Credentials'], security: [['Bearer' => []]], responses: [new OA\Response(response: 200, description: 'Version history')])]
     public function versions(int $id): JsonResponse
     {
+        $user = $this->requireUser();
+        if ($user instanceof JsonResponse) {
+            return $user;
+        }
+
         $submission = $this->submissionRepository->find($id);
         if (!$submission) {
             return $this->error('Credential submission not found', 404);
         }
 
-        $versions = $this->workflowService->versions($submission);
+        try {
+            $versions = $this->workflowService->versions($submission, $user);
+        } catch (ApiException $exception) {
+            return $this->fromApiException($exception);
+        }
+
         return $this->ok([
             'submission' => $this->submissionToArray($submission),
             'items' => array_map(fn (CredentialVersion $version) => $this->versionToArray($version), $versions),
@@ -192,10 +202,6 @@ class CredentialController extends ApiController
         if ($user instanceof JsonResponse) {
             return $user;
         }
-        if (!in_array($user->getRole()->value, ['ROLE_CREDENTIAL_REVIEWER', 'ROLE_SYSTEM_ADMIN'], true)) {
-            return $this->error('Reviewer role required', 403);
-        }
-
         $stateParam = $request->query->get('state');
         $state = null;
         if (is_string($stateParam) && $stateParam !== '') {
@@ -206,7 +212,7 @@ class CredentialController extends ApiController
             }
         }
 
-        $items = $this->workflowService->queue($state);
+        $items = $this->workflowService->queue($state, $user);
         return $this->ok(['items' => array_map(fn (CredentialSubmission $item) => $this->submissionToArray($item), $items)]);
     }
 

@@ -38,6 +38,12 @@ docker compose up --build
 - `reviewer` / `Reviewer@123` -> `ROLE_CREDENTIAL_REVIEWER`
 - `analyst` / `Analyst@123` -> `ROLE_ANALYST`
 
+## Security
+
+- Public registration (`POST /api/v1/auth/register`) always creates `ROLE_USER`; privileged roles are only assignable via `PATCH /api/v1/admin/users/{id}/role` by system admin.
+- Authentication is JWT Bearer in the `Authorization` header and API firewalls are stateless.
+- CSRF tokens are not used for API endpoints because browsers do not auto-attach custom authorization headers cross-origin, which mitigates CSRF for this token-based API model (see `docs/questions.md` Q10).
+
 ## Test command
 
 From `fullstack/`:

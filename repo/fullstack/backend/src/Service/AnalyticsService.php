@@ -9,6 +9,7 @@ use App\Entity\CredentialVersion;
 use App\Entity\Practitioner;
 use App\Entity\Question;
 use App\Entity\QuestionVersion;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 
 class AnalyticsService
@@ -146,14 +147,70 @@ class AnalyticsService
             ->andWhere('p.status = :status')->setParameter('status', 'ACTIVE')
             ->groupBy('f.id')->getQuery()->getArrayResult();
 
+        $resubmissionRequested = (int) $this->entityManager->createQueryBuilder()
+            ->select('COUNT(DISTINCT cs.id)')
+            ->from(CredentialSubmission::class, 'cs')
+            ->join(CredentialVersion::class, 'cv', 'WITH', 'cv.submission = cs')
+            ->andWhere('cv.state = :state')
+            ->andWhere('cv.createdAt >= :from AND cv.createdAt <= :to')
+            ->setParameter('state', 'RESUBMISSION_REQUESTED')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->getQuery()->getSingleScalarResult();
+
+        $resubmissionApproved = (int) $this->entityManager->createQueryBuilder()
+            ->select('COUNT(DISTINCT cs.id)')
+            ->from(CredentialSubmission::class, 'cs')
+            ->join(CredentialVersion::class, 'cvRequest', 'WITH', 'cvRequest.submission = cs')
+            ->andWhere('cvRequest.state = :requested')
+            ->andWhere('cs.currentState = :approved')
+            ->setParameter('requested', 'RESUBMISSION_REQUESTED')
+            ->setParameter('approved', 'APPROVED')
+            ->getQuery()->getSingleScalarResult();
+
+        $newUsers = (int) $this->entityManager->createQueryBuilder()
+            ->select('COUNT(u.id)')
+            ->from(User::class, 'u')
+            ->andWhere('u.createdAt >= :from AND u.createdAt <= :to')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->getQuery()->getSingleScalarResult();
+
+        $newPractitioners = (int) $this->entityManager->createQueryBuilder()
+            ->select('COUNT(p.id)')
+            ->from(Practitioner::class, 'p')
+            ->andWhere('p.createdAt >= :from AND p.createdAt <= :to')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->getQuery()->getSingleScalarResult();
+
+        $firmDistribution = [];
+        foreach ($firmRows as $row) {
+            $firmDistribution[(string) $row['firm_name']] = (int) $row['practitioner_count'];
+        }
+
+        $resubmissionSuccessRate = $resubmissionRequested > 0 ? round(($resubmissionApproved / $resubmissionRequested) * 100, 2) : 0.0;
+        $onboardingRate = $newUsers > 0 ? round(($newPractitioners / $newUsers) * 100, 2) : 0.0;
+        $questionBankRefreshRate = $questionCreated > 0 ? round(($questionPublished / $questionCreated) * 100, 2) : 0.0;
+
         return [
+            'rescue_volume' => $volume,
+            'recovery_rate' => $resubmissionSuccessRate,
+            'adoption_conversion' => $onboardingRate,
+            'average_shelter_stay' => round($avgTurn, 2),
+            'donation_mix' => $firmDistribution,
+            'supply_turnover' => $questionBankRefreshRate,
             'credential_review_volume' => $volume,
             'approval_rate' => $reviewed > 0 ? round(($approved / $reviewed) * 100, 2) : 0.0,
             'rejection_rate' => $reviewed > 0 ? round(($rejected / $reviewed) * 100, 2) : 0.0,
             'avg_review_turnaround_hours' => round($avgTurn, 2),
             'appointment_utilization_rate' => $totalSlots > 0 ? round(($bookedSlots / $totalSlots) * 100, 2) : 0.0,
+            'resubmission_success_rate' => $resubmissionSuccessRate,
+            'new_practitioner_onboarding_rate' => $onboardingRate,
+            'firm_distribution' => $firmDistribution,
+            'question_bank_refresh_rate' => $questionBankRefreshRate,
             'question_bank_growth' => $questionCreated,
-            'question_publish_rate' => $questionCreated > 0 ? round(($questionPublished / $questionCreated) * 100, 2) : 0.0,
+            'question_publish_rate' => $questionBankRefreshRate,
             'active_practitioners_per_firm' => $firmRows,
         ];
     }

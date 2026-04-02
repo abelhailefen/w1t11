@@ -19,7 +19,8 @@ class BookingConflictTest extends KernelTestCase
         $service = $c->get(BookingService::class);
         $userId = (int) $db->fetchOne("SELECT id FROM users WHERE username='user'");
         $pid = (int) $db->fetchOne('SELECT id FROM practitioners ORDER BY id ASC LIMIT 1');
-        $lid = (int) $db->fetchOne("SELECT id FROM locations WHERE status='ACTIVE' ORDER BY id ASC LIMIT 1");
+        $db->insert('locations', ['name' => 'ConflictTest-' . uniqid(), 'address' => 'Test', 'capacity' => 1, 'status' => 'ACTIVE', 'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s')]);
+        $lid = (int) $db->lastInsertId();
         $base = (new \DateTimeImmutable(sprintf('+2 days +%d minutes', random_int(1, 5000))))->setTime((int) date('H'), 0);
         $start = $base->format('Y-m-d H:i:s');
         $end = $base->modify('+30 minutes')->format('Y-m-d H:i:s');

@@ -26,6 +26,7 @@ class AuthService
         private readonly CaptchaService $captchaService,
         private readonly EntityManagerInterface $entityManager,
         private readonly Connection $connection,
+        private readonly EncryptionService $encryptionService,
         private readonly AuditLogService $auditLogService,
         private readonly AlertService $alertService,
         private readonly SystemSettingService $systemSettingService
@@ -35,7 +36,6 @@ class AuthService
     public function register(
         string $username,
         string $password,
-        string $role,
         string $fullName,
         string $firmAffiliation,
         string $licenseNumber
@@ -49,7 +49,7 @@ class AuthService
 
         $user = (new User())
             ->setUsername($username)
-            ->setRole(UserRole::from($role))
+            ->setRole(UserRole::ROLE_USER)
             ->setStatus(UserStatus::ACTIVE)
             ->setCreatedAt($now)
             ->setUpdatedAt($now);
@@ -63,7 +63,7 @@ class AuthService
         $this->connection->insert('practitioners', [
             'firm_id' => $firmId,
             'full_name' => $fullName,
-            'license_number_encrypted' => base64_encode($licenseNumber),
+            'license_number_encrypted' => $this->encryptionService->encrypt($licenseNumber),
             'license_jurisdiction' => 'N/A',
             'contact_email' => null,
             'contact_phone' => null,
@@ -81,6 +81,13 @@ class AuthService
         $user = $this->userRepository->findOneByUsername($username);
         $lockout = $user ? $this->accountLockoutRepository->findOneByUser($user) : null;
 
+        $lockStatus = $this->checkLockout($username);
+        if ($lockStatus['locked']) {
+            throw new ApiException('Account locked until ' . $lockStatus['locked_until'], 423, [
+                'locked_until' => $lockStatus['locked_until'],
+            ]);
+        }
+
         if ($this->isCaptchaRequired($username, $now) && (!$captchaToken || !$captchaAnswer || !$this->captchaService->verify($captchaToken, $captchaAnswer))) {
             $this->recordAttempt($username, $lockout, $user, false, $ipAddress, $now);
             throw new ApiException('CAPTCHA required', 403, [
@@ -96,6 +103,23 @@ class AuthService
 
         if (!$user || !$this->passwordHasher->isPasswordValid($user, $password)) {
             $this->recordAttempt($username, $lockout, $user, false, $ipAddress, $now);
+
+            if ($user) {
+                $updatedLockout = $this->accountLockoutRepository->findOneByUser($user);
+                $lockedUntil = $updatedLockout?->getLockedUntil();
+                if ($lockedUntil && $lockedUntil > $now) {
+                    throw new ApiException('Account locked until ' . $lockedUntil->format(DATE_ATOM), 423, [
+                        'locked_until' => $lockedUntil->format(DATE_ATOM),
+                    ]);
+                }
+            }
+
+            $lockStatus = $this->checkLockout($username);
+            if ($lockStatus['locked']) {
+                throw new ApiException('Account locked until ' . $lockStatus['locked_until'], 423, [
+                    'locked_until' => $lockStatus['locked_until'],
+                ]);
+            }
 
             if ($this->isCaptchaRequired($username, $now)) {
                 throw new ApiException('CAPTCHA required', 403, [
@@ -126,9 +150,36 @@ class AuthService
 
     public function checkLockout(string $username): array
     {
+        $now = new \DateTimeImmutable();
+        $user = $this->userRepository->findOneByUsername($username);
+        if (!$user) {
+            return ['locked' => false, 'captcha_required' => false, 'locked_until' => null];
+        }
+
+        $lockout = $this->accountLockoutRepository->findOneByUser($user);
+        if (!$lockout) {
+            return ['locked' => false, 'captcha_required' => false, 'locked_until' => null];
+        }
+
+        $lockedUntil = $lockout->getLockedUntil();
+        if ($lockedUntil && $lockedUntil > $now) {
+            return [
+                'locked' => true,
+                'captcha_required' => true,
+                'locked_until' => $lockedUntil->format(DATE_ATOM),
+            ];
+        }
+
+        if ($lockedUntil && $lockedUntil <= $now) {
+            $lockout->setFailedCount(0);
+            $lockout->setCaptchaRequired(false);
+            $lockout->setLockedUntil(null);
+            $this->entityManager->flush();
+        }
+
         return [
             'locked' => false,
-            'captcha_required' => $this->isCaptchaRequired($username, new \DateTimeImmutable()),
+            'captcha_required' => $lockout->isCaptchaRequired() || $this->isCaptchaRequired($username, $now),
             'locked_until' => null,
         ];
     }
@@ -155,7 +206,9 @@ class AuthService
 
                 $lockout->setFailedCount($nextCount);
                 $lockout->setCaptchaRequired($nextCount >= $this->loginLockoutAttempts());
-                $lockout->setLockedUntil(null);
+                $lockout->setLockedUntil($nextCount >= $this->loginLockoutAttempts()
+                    ? $attemptedAt->add(new \DateInterval('PT' . $this->lockoutDurationMinutes() . 'M'))
+                    : null);
                 $user->setStatus(UserStatus::ACTIVE);
                 $user->setUpdatedAt($attemptedAt);
             }
@@ -250,7 +303,7 @@ class AuthService
 
     private function loginLockoutAttempts(): int
     {
-        return max(1, $this->systemSettingService->getInt('login_lockout_attempts', 3));
+        return max(1, $this->systemSettingService->getInt('login_lockout_attempts', 5));
     }
 
     private function lockoutDurationMinutes(): int

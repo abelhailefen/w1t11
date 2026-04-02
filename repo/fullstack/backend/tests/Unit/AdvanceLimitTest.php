@@ -16,6 +16,25 @@ class AdvanceLimitTest extends KernelTestCase
         $service = static::getContainer()->get(BookingService::class);
         $userId = (int) $db->fetchOne("SELECT id FROM users WHERE username='user'");
         $pid = (int) $db->fetchOne('SELECT id FROM practitioners ORDER BY id ASC LIMIT 1');
+        if ($pid <= 0) {
+            $firmId = (int) $db->fetchOne('SELECT id FROM firms ORDER BY id ASC LIMIT 1');
+            if ($firmId <= 0) {
+                $db->insert('firms', ['name' => 'AdvanceTest Firm', 'address' => 'Test', 'status' => 'ACTIVE', 'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s')]);
+                $firmId = (int) $db->lastInsertId();
+            }
+            $db->insert('practitioners', [
+                'firm_id' => $firmId,
+                'full_name' => 'Advance Limit Practitioner',
+                'license_number_encrypted' => 'advance-limit-placeholder-license',
+                'license_jurisdiction' => 'NY',
+                'contact_email' => null,
+                'contact_phone' => null,
+                'status' => 'ACTIVE',
+                'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            ]);
+            $pid = (int) $db->lastInsertId();
+        }
         $db->insert('locations', ['name' => 'AdvanceTest-' . uniqid(), 'address' => 'Test', 'capacity' => 1, 'status' => 'ACTIVE', 'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s')]);
         $lid = (int) $db->lastInsertId();
 

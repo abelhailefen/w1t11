@@ -28,8 +28,8 @@ final class Version20260403050000 extends AbstractMigration
         $this->addSql('EXECUTE stmt');
         $this->addSql('DEALLOCATE PREPARE stmt');
         $this->addSql('CREATE TABLE IF NOT EXISTS question_versions (id INT AUTO_INCREMENT NOT NULL, question_id INT NOT NULL, version_no INT NOT NULL, content_html LONGTEXT NOT NULL, plain_text_index LONGTEXT NOT NULL, difficulty INT NOT NULL, metadata_json LONGTEXT DEFAULT NULL, created_by INT NOT NULL, created_at DATETIME NOT NULL, UNIQUE INDEX UNIQ_QUESTION_VERSION_NO (question_id, version_no), INDEX IDX_QV_QUESTION (question_id), INDEX IDX_QV_CREATED_BY (created_by), PRIMARY KEY(id), CONSTRAINT FK_QV_QUESTION FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE, CONSTRAINT FK_QV_CREATED_BY FOREIGN KEY (created_by) REFERENCES users (id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
-        $this->addSql("SET @has_fk := (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND CONSTRAINT_NAME = 'FK_QUESTIONS_CURRENT_VERSION');");
-        $this->addSql("SET @fk_sql := IF(@has_fk = 0, 'ALTER TABLE questions ADD CONSTRAINT FK_QUESTIONS_CURRENT_VERSION FOREIGN KEY (current_version_id) REFERENCES question_versions (id) ON DELETE SET NULL', 'SELECT 1');");
+        $this->addSql("SET @has_fk := (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND CONSTRAINT_NAME = 'FK_QUESTIONS_CURRENT_VERSION_QV');");
+        $this->addSql("SET @fk_sql := IF(@has_fk = 0, 'ALTER TABLE questions ADD CONSTRAINT FK_QUESTIONS_CURRENT_VERSION_QV FOREIGN KEY (current_version_id) REFERENCES question_versions (id) ON DELETE SET NULL', 'SELECT 1');");
         $this->addSql('PREPARE stmt FROM @fk_sql');
         $this->addSql('EXECUTE stmt');
         $this->addSql('DEALLOCATE PREPARE stmt');
@@ -49,7 +49,11 @@ final class Version20260403050000 extends AbstractMigration
         $this->addSql('DROP TABLE IF EXISTS question_similarity_flags');
         $this->addSql('DROP TABLE IF EXISTS question_import_jobs');
         $this->addSql('DROP TABLE IF EXISTS question_tag_map');
-        $this->addSql('ALTER TABLE questions DROP FOREIGN KEY FK_QUESTIONS_CURRENT_VERSION');
+        $this->addSql("SET @has_fk_down := (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'questions' AND CONSTRAINT_NAME = 'FK_QUESTIONS_CURRENT_VERSION_QV');");
+        $this->addSql("SET @drop_fk_sql := IF(@has_fk_down = 1, 'ALTER TABLE questions DROP FOREIGN KEY FK_QUESTIONS_CURRENT_VERSION_QV', 'SELECT 1');");
+        $this->addSql('PREPARE stmt FROM @drop_fk_sql');
+        $this->addSql('EXECUTE stmt');
+        $this->addSql('DEALLOCATE PREPARE stmt');
         $this->addSql('DROP INDEX IDX_QUESTIONS_CURRENT_VERSION ON questions');
         $this->addSql('DROP TABLE IF EXISTS question_versions');
         $this->addSql('ALTER TABLE questions DROP COLUMN current_version_id, DROP COLUMN duplicate_acknowledged');
