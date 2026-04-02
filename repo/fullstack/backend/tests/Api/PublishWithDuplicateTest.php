@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class PublishWithDuplicateTest extends WebTestCase
+class PublishWithDuplicateTest extends ApiWebTestCase
 {
     public function testPublishDuplicateAndUnique(): void
     {

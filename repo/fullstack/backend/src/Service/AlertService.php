@@ -60,6 +60,11 @@ class AlertService
         return $affected > 0;
     }
 
+    public function createCriticalAlert(string $type, string $message, array $context = []): void
+    {
+        $this->createDeduplicated($type, 'CRITICAL', $message, $context);
+    }
+
     public function sweep(): array
     {
         $created = 0;

@@ -28,6 +28,7 @@ services:
       mysql:
         condition: service_healthy
     environment:
+      # Security note: replace secret values below for production deployments.
       APP_ENV: dev
       APP_SECRET: changeme_app_secret
       DB_HOST: mysql

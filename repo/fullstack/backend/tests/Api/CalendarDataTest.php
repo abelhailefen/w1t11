@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class CalendarDataTest extends WebTestCase
+class CalendarDataTest extends ApiWebTestCase
 {
     public function testCalendarWeekStructure(): void
     {

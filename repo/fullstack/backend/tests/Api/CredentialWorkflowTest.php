@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class CredentialWorkflowTest extends WebTestCase
+class CredentialWorkflowTest extends ApiWebTestCase
 {
     public function testLifecycleCreateSubmitReviewApprove(): void
     {

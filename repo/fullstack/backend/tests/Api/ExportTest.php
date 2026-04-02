@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class ExportTest extends WebTestCase
+class ExportTest extends ApiWebTestCase
 {
     public function testCsvExportDownload(): void
     {

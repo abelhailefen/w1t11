@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class RejectionRequiresCommentTest extends WebTestCase
+class RejectionRequiresCommentTest extends ApiWebTestCase
 {
     public function testRejectWithoutCommentReturns400(): void
     {

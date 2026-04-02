@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class PrivilegeEscalationTest extends WebTestCase
+class PrivilegeEscalationTest extends ApiWebTestCase
 {
     public function testRegisterIgnoresSuppliedPrivilegedRoleAndAdminRolePatchStillWorks(): void
     {

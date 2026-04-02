@@ -14,6 +14,39 @@ use Doctrine\ORM\EntityManagerInterface;
 
 class AnalyticsService
 {
+    private const ALLOWED_FIELDS = [
+        'practitioners' => [
+            'id' => 'id',
+            'full_name' => 'fullName',
+            'firm_id' => 'firm',
+            'license_jurisdiction' => 'licenseJurisdiction',
+            'status' => 'status',
+            'created_at' => 'createdAt',
+        ],
+        'credentials' => [
+            'id' => 'id',
+            'practitioner_id' => 'practitioner',
+            'current_state' => 'currentState',
+            'created_at' => 'createdAt',
+            'updated_at' => 'updatedAt',
+        ],
+        'appointments' => [
+            'id' => 'id',
+            'practitioner_id' => 'practitioner',
+            'location_id' => 'location',
+            'state' => 'state',
+            'booked_at' => 'bookedAt',
+            'cancelled_at' => 'cancelledAt',
+        ],
+        'questions' => [
+            'id' => 'id',
+            'category_id' => 'category',
+            'status' => 'status',
+            'created_at' => 'createdAt',
+            'updated_at' => 'updatedAt',
+        ],
+    ];
+
     public function __construct(private readonly EntityManagerInterface $entityManager)
     {
     }
@@ -40,16 +73,20 @@ class AnalyticsService
             $qb->select('COUNT(' . $alias . '.id) as aggregate_value');
         } elseif ($aggregation === 'avg') {
             $field = (string) ($definition['aggregation_field'] ?? 'id');
-            $qb->select('AVG(' . $alias . '.' . $field . ') as aggregate_value');
+            $resolvedField = $this->resolveAllowedField($entityType, $field);
+            $qb->select('AVG(' . $this->toFieldExpression($alias, $resolvedField) . ') as aggregate_value');
         } elseif ($aggregation === 'sum') {
             $field = (string) ($definition['aggregation_field'] ?? 'id');
-            $qb->select('SUM(' . $alias . '.' . $field . ') as aggregate_value');
+            $resolvedField = $this->resolveAllowedField($entityType, $field);
+            $qb->select('SUM(' . $this->toFieldExpression($alias, $resolvedField) . ') as aggregate_value');
         } else {
             throw new ApiException('Invalid aggregation', 400);
         }
 
         if ($groupBy !== '') {
-            $qb->addSelect($alias . '.' . $groupBy . ' as group_value')->groupBy($alias . '.' . $groupBy);
+            $resolvedGroupBy = $this->resolveAllowedField($entityType, $groupBy);
+            $groupByExpression = $this->toFieldExpression($alias, $resolvedGroupBy);
+            $qb->addSelect($groupByExpression . ' as group_value')->groupBy($groupByExpression);
         }
 
         if (!empty($filters['status'])) {
@@ -64,6 +101,25 @@ class AnalyticsService
 
         $qb->setFirstResult(($page - 1) * $limit)->setMaxResults($limit);
         return ['items' => $qb->getQuery()->getArrayResult(), 'pagination' => ['page' => $page, 'limit' => $limit]];
+    }
+
+    private function resolveAllowedField(string $entityType, string $field): string
+    {
+        $field = trim($field);
+        $allowed = self::ALLOWED_FIELDS[$entityType] ?? null;
+        if ($allowed === null || !isset($allowed[$field])) {
+            $allowedFields = $allowed ? array_keys($allowed) : [];
+            throw new ApiException(sprintf("Invalid field: '%s'. Allowed fields: [%s]", $field, implode(', ', $allowedFields)), 400);
+        }
+
+        return $allowed[$field];
+    }
+
+    private function toFieldExpression(string $alias, string $field): string
+    {
+        return in_array($field, ['firm', 'practitioner', 'location', 'category'], true)
+            ? sprintf('IDENTITY(%s.%s)', $alias, $field)
+            : sprintf('%s.%s', $alias, $field);
     }
 
     public function getComplianceKPIs(string $dateFrom, string $dateTo, ?int $orgUnitId = null): array

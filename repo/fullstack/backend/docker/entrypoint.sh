@@ -3,10 +3,12 @@ set -e
 
 /var/www/html/docker/wait-for-db.sh
 
-if [ ! -f /var/www/html/config/jwt/private.pem ] || [ ! -f /var/www/html/config/jwt/public.pem ]; then
+# Generate JWT keypair if not present
+if [ ! -f /var/www/html/config/jwt/private.pem ]; then
   mkdir -p /var/www/html/config/jwt
-  openssl genrsa -out /var/www/html/config/jwt/private.pem -aes256 -passout pass:"${JWT_PASSPHRASE}" 4096
-  openssl rsa -pubout -in /var/www/html/config/jwt/private.pem -passin pass:"${JWT_PASSPHRASE}" -out /var/www/html/config/jwt/public.pem
+  openssl genpkey -out /var/www/html/config/jwt/private.pem -aes256 -algorithm rsa -pkeyopt rsa_keygen_bits:4096 -pass pass:"${JWT_PASSPHRASE}"
+  openssl pkey -in /var/www/html/config/jwt/private.pem -out /var/www/html/config/jwt/public.pem -pubout -passin pass:"${JWT_PASSPHRASE}"
+  echo "JWT keypair generated."
 fi
 
 php bin/console doctrine:migrations:migrate --no-interaction

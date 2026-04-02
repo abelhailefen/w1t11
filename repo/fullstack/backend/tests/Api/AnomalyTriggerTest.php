@@ -4,10 +4,10 @@ namespace App\Tests\Api;
 
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class AnomalyTriggerTest extends WebTestCase
+class AnomalyTriggerTest extends ApiWebTestCase
 {
     public function testRejectionsTriggerHighAlert(): void
     {

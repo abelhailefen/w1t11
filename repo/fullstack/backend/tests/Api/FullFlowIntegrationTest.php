@@ -3,9 +3,9 @@
 namespace App\Tests\Api;
 
 use Doctrine\DBAL\Connection;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class FullFlowIntegrationTest extends WebTestCase
+class FullFlowIntegrationTest extends ApiWebTestCase
 {
     public function testAdminCrossModuleFlow(): void
     {

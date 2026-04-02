@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class AuthorizationTest extends WebTestCase
+class AuthorizationTest extends ApiWebTestCase
 {
     public function testNonAnalystGets403(): void
     {

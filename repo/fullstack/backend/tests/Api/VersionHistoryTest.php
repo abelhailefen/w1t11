@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class VersionHistoryTest extends WebTestCase
+class VersionHistoryTest extends ApiWebTestCase
 {
     public function testVersionHistoryContainsMultipleRecords(): void
     {

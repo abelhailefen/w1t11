@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class RollbackAPITest extends WebTestCase
+class RollbackAPITest extends ApiWebTestCase
 {
     public function testRollbackScenarios(): void
     {

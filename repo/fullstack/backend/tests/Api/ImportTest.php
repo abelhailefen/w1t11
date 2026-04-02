@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class ImportTest extends WebTestCase
+class ImportTest extends ApiWebTestCase
 {
     public function testImportValidAndInvalidCsv(): void
     {

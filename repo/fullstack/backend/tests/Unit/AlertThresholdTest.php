@@ -17,6 +17,17 @@ class AlertThresholdTest extends KernelTestCase
         $alerts = static::getContainer()->get(AlertService::class);
 
         $db->executeStatement('DELETE FROM alerts');
+        $db->executeStatement("DELETE FROM system_settings WHERE setting_key IN ('alert_rejection_threshold', 'alert_rejection_window_hours')");
+        $db->insert('system_settings', [
+            'setting_key' => 'alert_rejection_threshold',
+            'setting_value' => '5',
+            'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+        ]);
+        $db->insert('system_settings', [
+            'setting_key' => 'alert_rejection_window_hours',
+            'setting_value' => '24',
+            'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+        ]);
 
         $now = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
         $db->insert('firms', ['name' => 'alert-firm-1-' . bin2hex(random_bytes(2)), 'address' => null, 'status' => 'ACTIVE', 'created_at' => $now]);

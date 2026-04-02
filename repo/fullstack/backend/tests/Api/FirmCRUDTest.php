@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class FirmCRUDTest extends WebTestCase
+class FirmCRUDTest extends ApiWebTestCase
 {
     public function testFirmCrudAsAdminAndForbiddenAsUser(): void
     {

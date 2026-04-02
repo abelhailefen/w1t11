@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class ExportPdfTest extends WebTestCase
+class ExportPdfTest extends ApiWebTestCase
 {
     public function testPdfExportContentType(): void
     {

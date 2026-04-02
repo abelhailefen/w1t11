@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class TrendApiTest extends WebTestCase
+class TrendApiTest extends ApiWebTestCase
 {
     public function testTrendEndpointReturnsDataPoints(): void
     {

@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class QuestionCRUDTest extends WebTestCase
+class QuestionCRUDTest extends ApiWebTestCase
 {
     public function testCreateListUpdateVersions(): void
     {

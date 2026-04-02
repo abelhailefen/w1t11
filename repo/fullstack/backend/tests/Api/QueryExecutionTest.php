@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class QueryExecutionTest extends WebTestCase
+class QueryExecutionTest extends ApiWebTestCase
 {
     public function testQueryExecutionAndInvalidEntityType(): void
     {

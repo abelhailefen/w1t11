@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class RegisterTest extends WebTestCase
+class RegisterTest extends ApiWebTestCase
 {
     public function testRegisterFlow(): void
     {

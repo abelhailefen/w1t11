@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class SystemSettingsTest extends WebTestCase
+class SystemSettingsTest extends ApiWebTestCase
 {
     public function testGetPutGetSettings(): void
     {

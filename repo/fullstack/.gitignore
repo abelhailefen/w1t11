@@ -1,5 +1,6 @@
 backend/vendor/
 backend/var/
+# Generated at container startup
 backend/config/jwt/
 frontend/node_modules/
 frontend/dist/

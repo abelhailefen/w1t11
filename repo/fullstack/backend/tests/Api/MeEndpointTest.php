@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class MeEndpointTest extends WebTestCase
+class MeEndpointTest extends ApiWebTestCase
 {
     public function testMeEndpointAuthorization(): void
     {

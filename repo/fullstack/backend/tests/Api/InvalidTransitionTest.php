@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class InvalidTransitionTest extends WebTestCase
+class InvalidTransitionTest extends ApiWebTestCase
 {
     public function testDraftToApprovedReturns422(): void
     {

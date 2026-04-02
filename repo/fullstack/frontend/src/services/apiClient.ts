@@ -15,6 +15,9 @@ const apiBaseUrl =
 export const apiClient = axios.create({
   baseURL: apiBaseUrl,
   timeout: 10000,
+  withCredentials: true,
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 apiClient.interceptors.request.use((config) => {

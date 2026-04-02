@@ -2,10 +2,10 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
-class FileUploadTest extends WebTestCase
+class FileUploadTest extends ApiWebTestCase
 {
     public function testFileUploadValidationAndDownload(): void
     {

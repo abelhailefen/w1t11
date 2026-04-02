@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class QuestionRollbackApiTest extends WebTestCase
+class QuestionRollbackApiTest extends ApiWebTestCase
 {
     public function testRollbackAdminAllowedNonAdminForbidden(): void
     {

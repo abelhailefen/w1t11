@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class QueueFilterTest extends WebTestCase
+class QueueFilterTest extends ApiWebTestCase
 {
     public function testQueueCanBeFilteredByState(): void
     {

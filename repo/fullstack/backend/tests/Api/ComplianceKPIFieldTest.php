@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class ComplianceKPIFieldTest extends WebTestCase
+class ComplianceKPIFieldTest extends ApiWebTestCase
 {
     public function testComplianceEndpointIncludesPromptLiteralKpis(): void
     {

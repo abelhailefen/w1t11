@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class PractitionerCRUDTest extends WebTestCase
+class PractitionerCRUDTest extends ApiWebTestCase
 {
     public function testPractitionerCrudFlow(): void
     {

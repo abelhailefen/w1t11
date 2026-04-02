@@ -3,9 +3,9 @@
 namespace App\Tests\Api;
 
 use Doctrine\DBAL\Connection;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class SlotListTest extends WebTestCase
+class SlotListTest extends ApiWebTestCase
 {
     public function testReturnsOnlyAvailableSlotsInRange(): void
     {

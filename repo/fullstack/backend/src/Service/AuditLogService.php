@@ -3,11 +3,15 @@
 namespace App\Service;
 
 use Doctrine\DBAL\Connection;
+use Psr\Log\LoggerInterface;
 
 class AuditLogService
 {
-    public function __construct(private readonly Connection $connection)
-    {
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly LoggerInterface $logger,
+        private readonly AlertService $alertService
+    ) {
     }
 
     public function log(
@@ -32,7 +36,25 @@ class AuditLogService
                 'ip_address' => $ipAddress,
                 'retention_expires_at' => $occurredAt->add(new \DateInterval('P7Y'))->format('Y-m-d H:i:s'),
             ]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->error('AUDIT LOG FAILURE: ' . $e->getMessage(), [
+                'action_type' => $actionType,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'user_id' => $userId,
+                'exception' => $e,
+            ]);
+
+            try {
+                $this->alertService->createCriticalAlert('AUDIT_LOG_FAILURE', 'Audit log write failed', [
+                    'action_type' => $actionType,
+                    'entity_type' => $entityType,
+                    'entity_id' => $entityId,
+                    'user_id' => $userId,
+                    'message' => $e->getMessage(),
+                ]);
+            } catch (\Throwable) {
+            }
         }
     }
 }

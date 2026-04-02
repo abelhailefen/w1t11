@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class AdminUserTest extends WebTestCase
+class AdminUserTest extends ApiWebTestCase
 {
     public function testAdminEndpointsAccessAndActions(): void
     {

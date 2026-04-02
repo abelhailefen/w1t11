@@ -42,7 +42,9 @@ docker compose up --build
 
 - Public registration (`POST /api/v1/auth/register`) always creates `ROLE_USER`; privileged roles are only assignable via `PATCH /api/v1/admin/users/{id}/role` by system admin.
 - Authentication is JWT Bearer in the `Authorization` header and API firewalls are stateless.
-- CSRF tokens are not used for API endpoints because browsers do not auto-attach custom authorization headers cross-origin, which mitigates CSRF for this token-based API model (see `docs/questions.md` Q10).
+- CSRF protection uses a double-submit cookie pattern: backend sets `XSRF-TOKEN` for authenticated sessions, and state-changing requests (`POST|PUT|PATCH|DELETE`) must send matching `X-XSRF-TOKEN` header or they are rejected with `403`.
+- CSRF validation excludes bootstrap endpoints: `/api/v1/auth/login`, `/api/v1/auth/register`, `/api/v1/auth/captcha`, and `/api/doc`.
+- Security note: JWT keys are generated automatically on first backend container startup. In production, replace `APP_SECRET`, `JWT_PASSPHRASE`, and `LICENSE_ENCRYPTION_KEY` values in `docker-compose.yml` with strong secrets.
 
 ## Test command
 

@@ -458,3 +458,12 @@ Resolved delivery acceptance findings:
 - **High (License Encryption):** Registration now uses `EncryptionService::encrypt()` for license data. Added one-time remediation command `app:migrate:fix-license-encryption` and wired it into container startup after migration/seed.
 - **High (Compliance KPI Naming):** Compliance API now returns both prompt-literal KPI names and existing domain KPI fields; dashboard and compliance CSV/PDF exports include the expanded KPI set.
 - **Medium (CSRF Documentation):** Added explicit CSRF strategy rationale in `backend/config/packages/security.yaml` and README Security section for JWT header-based stateless auth.
+
+## 21) Fix Pass 2 Remediation Snapshot
+
+Resolved second acceptance review findings:
+- **Blocker (CSRF Prompt-Fit):** Implemented backend double-submit CSRF enforcement listener (`XSRF-TOKEN` cookie + `X-XSRF-TOKEN` header check) for all state-changing authenticated API requests with explicit auth/doc endpoint exclusions.
+- **High (Question API Authorization):** Applied backend role enforcement to all `/api/v1/questions*` endpoints via `ROLE_CONTENT_ADMIN` gate (system admin allowed via role hierarchy), matching frontend route restrictions.
+- **High (Secret Hygiene):** Removed committed JWT key files, retained runtime keypair generation in container entrypoint, replaced local `.env` secret values with placeholders, and documented production secret replacement in Compose/README.
+- **High (Analytics Query Safety):** Added strict per-entity allowlist validation for `aggregation_field` and `group_by` in analytics query execution and reject invalid fields with explicit `400` errors.
+- **Medium (Audit Failure Visibility):** Audit write exceptions now emit structured error logs and create CRITICAL alerts for operator visibility while preserving fail-safe non-blocking behavior.

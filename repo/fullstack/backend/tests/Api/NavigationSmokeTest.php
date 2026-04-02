@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class NavigationSmokeTest extends WebTestCase
+class NavigationSmokeTest extends ApiWebTestCase
 {
     public function testMenuLinkedApiEndpointsRespond(): void
     {

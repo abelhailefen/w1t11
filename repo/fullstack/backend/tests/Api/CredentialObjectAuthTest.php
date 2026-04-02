@@ -2,9 +2,9 @@
 
 namespace App\Tests\Api;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class CredentialObjectAuthTest extends WebTestCase
+class CredentialObjectAuthTest extends ApiWebTestCase
 {
     public function testCredentialVersionsRequireOwnerReviewerOrAdmin(): void
     {

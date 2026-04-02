@@ -3,14 +3,15 @@
 namespace App\Tests\Api;
 
 use Doctrine\DBAL\Connection;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Api\ApiWebTestCase;
 
-class ConcurrencyTest extends WebTestCase
+class ConcurrencyTest extends ApiWebTestCase
 {
     public function testTwoParallelHoldsOnlyOneSucceeds(): void
     {
         $client = static::createClient();
         $token = $this->login($client, 'user', 'User@123');
+        $csrfToken = (string) $client->getCookieJar()->get('XSRF-TOKEN')?->getValue();
         $slotId = $this->createSingleCapacitySlot();
         $url = 'http://localhost/api/v1/appointments/hold';
         $payload = json_encode(['slot_id' => $slotId], JSON_THROW_ON_ERROR);
@@ -20,7 +21,12 @@ class ConcurrencyTest extends WebTestCase
         foreach ([$ch1, $ch2] as $ch) {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: Bearer ' . $token]);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $token,
+                'X-XSRF-TOKEN: ' . $csrfToken,
+                'Cookie: XSRF-TOKEN=' . $csrfToken,
+            ]);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
         }
 
