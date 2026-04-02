@@ -22,7 +22,7 @@ COPY docker/php.ini /usr/local/etc/php/conf.d/app.ini
 COPY docker/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 
 COPY composer.json composer.lock* ./
-RUN composer install --no-interaction --prefer-dist
+RUN composer install --no-interaction --prefer-dist --no-scripts
 
 COPY . .
 

@@ -40,6 +40,7 @@ services:
       JWT_PUBLIC_KEY: /var/www/html/config/jwt/public.pem
       JWT_PASSPHRASE: changeme_jwt_passphrase
       LICENSE_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+      HUMAN_VERIFICATION_ENABLED: "false"
       DUPLICATE_SIMILARITY_THRESHOLD: 80
       APPOINTMENT_SLOT_MINUTES: 30
       APPOINTMENT_HOLD_MINUTES: 5
@@ -48,8 +49,9 @@ services:
     ports:
       - "8000:80"
     volumes:
-      - ./backend:/var/www/html
       - ./storage/uploads:/var/app/uploads
+      - ./unit_tests:/var/www/unit_tests
+      - ./API_tests:/var/www/API_tests
     networks:
       - app_net
 

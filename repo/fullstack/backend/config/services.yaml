@@ -1,4 +1,5 @@
 parameters:
+  human_verification_enabled: '%env(bool:HUMAN_VERIFICATION_ENABLED)%'
 
 services:
   _defaults:
@@ -11,3 +12,14 @@ services:
       - '../src/DependencyInjection/'
       - '../src/Entity/'
       - '../src/Kernel.php'
+
+  App\Service\NullHumanVerificationService:
+    arguments:
+      $enabled: '%human_verification_enabled%'
+
+  App\Service\HumanVerificationInterface:
+    alias: App\Service\NullHumanVerificationService
+
+  App\EventListener\ApiExceptionListener:
+    tags:
+      - { name: kernel.event_listener, event: kernel.exception }

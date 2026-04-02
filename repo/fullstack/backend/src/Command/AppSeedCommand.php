@@ -7,7 +7,6 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\PasswordHasher\Hasher\NativePasswordHasher;
 
 #[AsCommand(name: 'app:seed:initial', description: 'Seeds initial idempotent data')]
 class AppSeedCommand extends Command
@@ -19,7 +18,6 @@ class AppSeedCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $hasher = new NativePasswordHasher(12);
         $users = [
             ['admin', 'Admin@123', 'ROLE_SYSTEM_ADMIN'],
             ['user', 'User@123', 'ROLE_USER'],
@@ -36,7 +34,7 @@ class AppSeedCommand extends Command
 
             $this->connection->insert('users', [
                 'username' => $username,
-                'password_hash' => $hasher->hash($password),
+                'password_hash' => password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]),
                 'role' => $role,
                 'status' => 'ACTIVE',
                 'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),

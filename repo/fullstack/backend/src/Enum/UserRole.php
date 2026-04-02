@@ -1,0 +1,12 @@
+<?php
+
+namespace App\Enum;
+
+enum UserRole: string
+{
+    case ROLE_USER = 'ROLE_USER';
+    case ROLE_CONTENT_ADMIN = 'ROLE_CONTENT_ADMIN';
+    case ROLE_CREDENTIAL_REVIEWER = 'ROLE_CREDENTIAL_REVIEWER';
+    case ROLE_ANALYST = 'ROLE_ANALYST';
+    case ROLE_SYSTEM_ADMIN = 'ROLE_SYSTEM_ADMIN';
+}

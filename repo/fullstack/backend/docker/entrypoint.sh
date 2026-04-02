@@ -9,8 +9,6 @@ if [ ! -f /var/www/html/config/jwt/private.pem ] || [ ! -f /var/www/html/config/
   openssl rsa -pubout -in /var/www/html/config/jwt/private.pem -passin pass:"${JWT_PASSPHRASE}" -out /var/www/html/config/jwt/public.pem
 fi
 
-composer install --no-interaction --prefer-dist
-
 php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console app:seed:initial --no-interaction
 

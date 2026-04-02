@@ -278,3 +278,16 @@ Seed command creates:
 - Frontend React + Ant Design scaffold builds to nginx
 - Health endpoint for smoke validation
 - Base PHPUnit/Jest setup and `run_tests.sh`
+
+## 12) Module 2 Delivery Snapshot
+
+Implemented scope for Auth & Users includes:
+- User, LoginAttempt, AccountLockout entities with repositories
+- AuthService (register, login, lockout, checkLockout, attempt tracking)
+- CaptchaService with local math challenge image generation (GD)
+- HumanVerificationInterface + NullHumanVerificationService (env-controlled)
+- StepUpAuthService for password re-check and justification logging
+- AuthController and AdminUserController endpoints with validator-backed input checks
+- JWT-secured API firewall and role hierarchy enforcement
+- React AuthContext, RoleGuard, LoginPage, UserManagementPage, role-based navigation
+- Unit tests and API tests for auth and admin flows

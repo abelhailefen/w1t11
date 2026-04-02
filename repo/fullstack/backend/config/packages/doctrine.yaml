@@ -14,8 +14,3 @@ doctrine:
         dir: '%kernel.project_dir%/src/Entity'
         prefix: 'App\Entity'
         alias: App
-
-when@test:
-  doctrine:
-    dbal:
-      dbname_suffix: '_test'
