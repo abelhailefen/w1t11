@@ -4,9 +4,11 @@ namespace App\Controller;
 
 use App\Entity\CredentialSubmission;
 use App\Entity\CredentialVersion;
+use App\Entity\Practitioner;
 use App\Entity\User;
 use App\Enum\CredentialState;
 use App\Repository\CredentialFileRepository;
+use App\Repository\PractitionerRepository;
 use App\Repository\CredentialSubmissionRepository;
 use App\Service\ApiException;
 use App\Service\CredentialWorkflowService;
@@ -23,6 +25,7 @@ class CredentialController extends ApiController
     public function __construct(
         private readonly CredentialSubmissionRepository $submissionRepository,
         private readonly CredentialFileRepository $credentialFileRepository,
+        private readonly PractitionerRepository $practitionerRepository,
         private readonly CredentialWorkflowService $workflowService,
         private readonly ValidatorInterface $validator
     ) {
@@ -44,6 +47,14 @@ class CredentialController extends ApiController
         ], allowExtraFields: true));
         if (count($violations) > 0) {
             return $this->validationError($violations);
+        }
+
+        $practitioner = $this->practitionerRepository->find((int) $payload['practitioner_id']);
+        if (!$practitioner) {
+            return $this->error('Practitioner not found', 404);
+        }
+        if (!$this->canCreateSubmissionForPractitioner($practitioner, $user)) {
+            return $this->error('Forbidden', 403);
         }
 
         try {
@@ -294,5 +305,21 @@ class CredentialController extends ApiController
                 'uploaded_at' => $file->getUploadedAt()->format(DATE_ATOM),
             ], $files),
         ];
+    }
+
+    private function canCreateSubmissionForPractitioner(Practitioner $practitioner, User $user): bool
+    {
+        if (in_array($user->getRole()->value, ['ROLE_CREDENTIAL_REVIEWER', 'ROLE_SYSTEM_ADMIN'], true)) {
+            return true;
+        }
+
+        if ((int) ($practitioner->getCreatedBy()?->getId() ?? 0) === (int) $user->getId()) {
+            return true;
+        }
+
+        return $this->submissionRepository->findOneBy([
+            'practitioner' => $practitioner,
+            'createdBy' => $user,
+        ]) !== null;
     }
 }

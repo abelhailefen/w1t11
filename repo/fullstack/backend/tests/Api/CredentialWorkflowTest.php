@@ -12,10 +12,22 @@ class CredentialWorkflowTest extends ApiWebTestCase
         $userToken = $this->login($client, 'user', 'User@123');
         $reviewerToken = $this->login($client, 'reviewer', 'Reviewer@123');
 
+        $client->request('POST', '/api/v1/practitioners', server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_Authorization' => 'Bearer ' . $userToken,
+        ], content: json_encode([
+            'full_name' => 'Workflow Owned Practitioner',
+            'firm_id' => 1,
+            'license_number' => 'WF-' . strtoupper(bin2hex(random_bytes(3))),
+            'license_jurisdiction' => 'NY',
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseStatusCodeSame(201);
+        $practitionerId = json_decode((string) $client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR)['id'];
+
         $client->request('POST', '/api/v1/credentials', server: [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_Authorization' => 'Bearer ' . $userToken,
-        ], content: json_encode(['practitioner_id' => 1], JSON_THROW_ON_ERROR));
+        ], content: json_encode(['practitioner_id' => $practitionerId], JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(201);
         $created = json_decode((string) $client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
 

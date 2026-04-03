@@ -15,8 +15,26 @@ class HoldExpirationTest extends KernelTestCase
         $db = static::getContainer()->get(Connection::class);
         $service = static::getContainer()->get(BookingService::class);
         $userId = (int) $db->fetchOne("SELECT id FROM users WHERE username='user'");
-        $pid = (int) $db->fetchOne('SELECT id FROM practitioners ORDER BY id ASC LIMIT 1');
-        $lid = (int) $db->fetchOne("SELECT id FROM locations WHERE status='ACTIVE' ORDER BY id ASC LIMIT 1");
+        $firmId = (int) $db->fetchOne('SELECT id FROM firms ORDER BY id ASC LIMIT 1');
+        if ($firmId <= 0) {
+            $db->insert('firms', ['name' => 'HoldTest Firm', 'address' => 'Test', 'status' => 'ACTIVE', 'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s')]);
+            $firmId = (int) $db->lastInsertId();
+        }
+        $db->insert('practitioners', [
+            'firm_id' => $firmId,
+            'full_name' => 'Hold Test Practitioner ' . uniqid(),
+            'license_number_encrypted' => 'hold-test-placeholder-license',
+            'license_jurisdiction' => 'NY',
+            'contact_email' => null,
+            'contact_phone' => null,
+            'status' => 'ACTIVE',
+            'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+        ]);
+        $pid = (int) $db->lastInsertId();
+
+        $db->insert('locations', ['name' => 'HoldTest-' . uniqid(), 'address' => 'Test', 'capacity' => 1, 'status' => 'ACTIVE', 'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s')]);
+        $lid = (int) $db->lastInsertId();
         $start = (new \DateTimeImmutable(sprintf('+2 days +%d minutes', random_int(1, 4000))));
         $db->insert('appointment_slots', ['practitioner_id' => $pid, 'location_id' => $lid, 'start_at' => $start->format('Y-m-d H:i:s'), 'end_at' => $start->modify('+30 minutes')->format('Y-m-d H:i:s'), 'capacity' => 1, 'available_count' => 1, 'status' => 'AVAILABLE']);
         $slotId = (int) $db->lastInsertId();

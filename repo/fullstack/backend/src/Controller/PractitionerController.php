@@ -169,15 +169,17 @@ class PractitionerController extends ApiController
             return $this->error('Practitioner not found', 404);
         }
 
+        $user = $this->requireAuthenticatedUser();
+        if ($user instanceof JsonResponse) {
+            return $user;
+        }
+        if (!$this->canAccessPractitionerCredentials($practitioner, $user)) {
+            return $this->error('Forbidden', 403);
+        }
+
         $file = $request->files->get('file');
         if (!$file) {
             return $this->error('File is required', 400);
-        }
-
-        /** @var User|null $user */
-        $user = $this->getUser();
-        if (!$user) {
-            return $this->error('Unauthorized', 401);
         }
 
         try {

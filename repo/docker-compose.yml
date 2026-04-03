@@ -21,7 +21,7 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: ./fullstack/backend
       dockerfile: Dockerfile
     container_name: regops-backend
     depends_on:
@@ -51,15 +51,15 @@ services:
     ports:
       - "8000:80"
     volumes:
-      - ./storage/uploads:/var/app/uploads
-      - ./unit_tests:/var/www/unit_tests
-      - ./API_tests:/var/www/API_tests
+      - ./fullstack/storage/uploads:/var/app/uploads
+      - ./fullstack/unit_tests:/var/www/unit_tests
+      - ./fullstack/API_tests:/var/www/API_tests
     networks:
       - app_net
 
   frontend:
     build:
-      context: ./frontend
+      context: ./fullstack/frontend
       dockerfile: Dockerfile
     container_name: regops-frontend
     depends_on:
@@ -75,8 +75,8 @@ services:
     working_dir: /app/frontend
     command: sh -c "npm install && tail -f /dev/null"
     volumes:
-      - ./frontend:/app/frontend
-      - ./unit_tests:/app/unit_tests
+      - ./fullstack/frontend:/app/frontend
+      - ./fullstack/unit_tests:/app/unit_tests
     networks:
       - app_net
 

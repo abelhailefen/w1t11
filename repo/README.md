@@ -17,7 +17,7 @@ Production-style, Docker-first fullstack platform for regulatory operations:
 
 ## One-command startup
 
-From `fullstack/`:
+From the repository root:
 
 ```bash
 docker compose up --build
@@ -48,7 +48,7 @@ docker compose up --build
 
 ## Test command
 
-From `fullstack/`:
+From the repository root:
 
 ```bash
 ./run_tests.sh
@@ -58,6 +58,29 @@ This runs:
 - backend unit suite
 - frontend jest suite
 - backend API suite
+
+## Offline / Air-Gapped Deployment
+
+For environments without internet access during build:
+
+1. **Pre-built images (recommended):** On a machine with internet, build and save images:
+   ```bash
+   docker compose build
+   docker save regops-backend regops-frontend -o regops-images.tar
+   ```
+   Transfer `regops-images.tar` to the air-gapped host and load:
+   ```bash
+   docker load -i regops-images.tar
+   docker compose up
+   ```
+
+2. **Vendored dependencies:** Alternatively, install dependencies locally before transfer:
+   - Backend: Run `composer install` on a connected machine, then include the `vendor/` directory
+   - Frontend: Run `npm install` on a connected machine, then include the `node_modules/` directory
+
+   Both directories are excluded from version control by `.gitignore` but can be included in a deployment bundle.
+
+At runtime, the application makes zero external network calls. All CAPTCHA generation, PDF rendering, and chart rendering are fully local.
 
 ## Core URLs/pages
 
