@@ -226,6 +226,7 @@ Standard HTTP status codes:
 - **Side effect:** Creates a `sensitive_access_log` record AND an audit log entry
 
 ### `POST /api/v1/practitioners/{id}/credentials/upload`
+- **Roles:** Owner, `ROLE_CREDENTIAL_REVIEWER`, `ROLE_SYSTEM_ADMIN`
 - **Request:** Multipart file upload
 - **Validation:** PDF/JPG/PNG only, ≤10 MB, server-side MIME check
 - **201:** File metadata
