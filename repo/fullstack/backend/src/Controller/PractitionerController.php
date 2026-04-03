@@ -10,6 +10,7 @@ use App\Repository\CredentialFileRepository;
 use App\Repository\PractitionerRepository;
 use App\Service\ApiException;
 use App\Service\PractitionerService;
+use Doctrine\DBAL\Connection;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,6 +27,7 @@ class PractitionerController extends ApiController
         private readonly PractitionerRepository $practitionerRepository,
         private readonly CredentialFileRepository $credentialFileRepository,
         private readonly PractitionerService $practitionerService,
+        private readonly Connection $connection,
         private readonly ValidatorInterface $validator
     ) {
     }
@@ -48,6 +50,11 @@ class PractitionerController extends ApiController
     #[OA\Post(path: '/api/v1/practitioners', tags: ['Practitioners'], security: [['Bearer' => []]], responses: [new OA\Response(response: 201, description: 'Created')])]
     public function create(Request $request): JsonResponse
     {
+        $user = $this->requireAuthenticatedUser();
+        if ($user instanceof JsonResponse) {
+            return $user;
+        }
+
         $payload = json_decode($request->getContent(), true) ?? [];
         $violations = $this->validator->validate($payload, new Assert\Collection([
             'full_name' => [new Assert\Required([new Assert\NotBlank(), new Assert\Length(min: 2, max: 255)])],
@@ -63,7 +70,7 @@ class PractitionerController extends ApiController
         }
 
         try {
-            $practitioner = $this->practitionerService->create($payload);
+            $practitioner = $this->practitionerService->create($payload, $user);
         } catch (ApiException $exception) {
             return $this->fromApiException($exception);
         }
@@ -90,6 +97,14 @@ class PractitionerController extends ApiController
         $practitioner = $this->practitionerRepository->find($id);
         if (!$practitioner) {
             return $this->error('Practitioner not found', 404);
+        }
+
+        $user = $this->requireAuthenticatedUser();
+        if ($user instanceof JsonResponse) {
+            return $user;
+        }
+        if (!$this->canManagePractitioner($practitioner, $user)) {
+            return $this->error('Forbidden', 403);
         }
 
         $payload = json_decode($request->getContent(), true) ?? [];
@@ -183,6 +198,14 @@ class PractitionerController extends ApiController
             return $this->error('Practitioner not found', 404);
         }
 
+        $user = $this->requireAuthenticatedUser();
+        if ($user instanceof JsonResponse) {
+            return $user;
+        }
+        if (!$this->canAccessPractitionerCredentials($practitioner, $user)) {
+            return $this->error('Forbidden', 403);
+        }
+
         $files = $this->practitionerService->listCredentialFiles($practitioner);
         return $this->ok(['items' => array_map(fn (CredentialFile $f) => $this->fileToArray($f), $files)]);
     }
@@ -194,6 +217,14 @@ class PractitionerController extends ApiController
         $practitioner = $this->practitionerRepository->find($id);
         if (!$practitioner) {
             return $this->error('Practitioner not found', 404);
+        }
+
+        $user = $this->requireAuthenticatedUser();
+        if ($user instanceof JsonResponse) {
+            return $user;
+        }
+        if (!$this->canAccessPractitionerCredentials($practitioner, $user)) {
+            return $this->error('Forbidden', 403);
         }
 
         $file = $this->credentialFileRepository->findOneForPractitioner($practitioner, $fileId);
@@ -208,6 +239,46 @@ class PractitionerController extends ApiController
         $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $file->getOriginalName());
         $response->headers->set('Content-Type', $file->getMimeType());
         return $response;
+    }
+
+    private function requireAuthenticatedUser(): User|JsonResponse
+    {
+        /** @var User|null $user */
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->error('Unauthorized', 401);
+        }
+
+        return $user;
+    }
+
+    private function canManagePractitioner(Practitioner $practitioner, User $user): bool
+    {
+        if (in_array($user->getRole()->value, ['ROLE_SYSTEM_ADMIN', 'ROLE_CREDENTIAL_REVIEWER'], true)) {
+            return true;
+        }
+
+        $identity = method_exists($user, 'getUsername') ? (string) $user->getUsername() : (string) $user->getUserIdentifier();
+
+        $ownerPractitioner = (int) $this->connection->fetchOne(
+            'SELECT COUNT(p.id) FROM practitioners p INNER JOIN users u ON u.id = p.created_by WHERE p.id = :pid AND (u.username = :identity OR CAST(u.id AS CHAR) = :identity)',
+            ['pid' => (int) $practitioner->getId(), 'identity' => $identity]
+        );
+        if ($ownerPractitioner > 0) {
+            return true;
+        }
+
+        $ownerSubmission = (int) $this->connection->fetchOne(
+            'SELECT COUNT(s.id) FROM credential_submissions s INNER JOIN users u ON u.id = s.created_by_id WHERE s.practitioner_id = :pid AND (u.username = :identity OR CAST(u.id AS CHAR) = :identity)',
+            ['pid' => (int) $practitioner->getId(), 'identity' => $identity]
+        );
+
+        return $ownerSubmission > 0;
+    }
+
+    private function canAccessPractitionerCredentials(Practitioner $practitioner, User $user): bool
+    {
+        return $this->canManagePractitioner($practitioner, $user);
     }
 
     private function fileToArray(CredentialFile $file): array

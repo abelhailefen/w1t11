@@ -27,6 +27,10 @@ class Firm
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\ManyToOne(targetEntity: OrgUnit::class)]
+    #[ORM\JoinColumn(name: 'org_unit_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?OrgUnit $orgUnit = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -73,6 +77,17 @@ class Firm
     public function setCreatedAt(\DateTimeImmutable $createdAt): self
     {
         $this->createdAt = $createdAt;
+        return $this;
+    }
+
+    public function getOrgUnit(): ?OrgUnit
+    {
+        return $this->orgUnit;
+    }
+
+    public function setOrgUnit(?OrgUnit $orgUnit): self
+    {
+        $this->orgUnit = $orgUnit;
         return $this;
     }
 }

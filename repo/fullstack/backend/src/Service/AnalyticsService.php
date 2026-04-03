@@ -130,31 +130,37 @@ class AnalyticsService
         $volume = (int) $this->entityManager->createQueryBuilder()
             ->select('COUNT(cs.id)')->from(CredentialSubmission::class, 'cs')
             ->andWhere('cs.createdAt >= :from AND cs.createdAt <= :to')
+            ->andWhere($this->orgScopeExistsSubquery('cs.practitioner', $orgUnitId))
             ->setParameter('from', $from)->setParameter('to', $to)
             ->getQuery()->getSingleScalarResult();
 
         $reviewed = (int) $this->entityManager->createQueryBuilder()->select('COUNT(cs.id)')->from(CredentialSubmission::class, 'cs')
             ->andWhere('cs.updatedAt >= :from AND cs.updatedAt <= :to')
             ->andWhere('cs.currentState IN (:states)')
+            ->andWhere($this->orgScopeExistsSubquery('cs.practitioner', $orgUnitId))
             ->setParameter('from', $from)->setParameter('to', $to)
             ->setParameter('states', ['APPROVED', 'REJECTED'])
             ->getQuery()->getSingleScalarResult();
         $approved = (int) $this->entityManager->createQueryBuilder()->select('COUNT(cs.id)')->from(CredentialSubmission::class, 'cs')
             ->andWhere('cs.updatedAt >= :from AND cs.updatedAt <= :to')
             ->andWhere('cs.currentState = :state')->setParameter('state', 'APPROVED')
+            ->andWhere($this->orgScopeExistsSubquery('cs.practitioner', $orgUnitId))
             ->setParameter('from', $from)->setParameter('to', $to)
             ->getQuery()->getSingleScalarResult();
         $rejected = (int) $this->entityManager->createQueryBuilder()->select('COUNT(cs.id)')->from(CredentialSubmission::class, 'cs')
             ->andWhere('cs.updatedAt >= :from AND cs.updatedAt <= :to')
             ->andWhere('cs.currentState = :state')->setParameter('state', 'REJECTED')
+            ->andWhere($this->orgScopeExistsSubquery('cs.practitioner', $orgUnitId))
             ->setParameter('from', $from)->setParameter('to', $to)
             ->getQuery()->getSingleScalarResult();
 
         $turnRows = $this->entityManager->createQueryBuilder()
             ->select('IDENTITY(cv.submission) as submission_id, cv.state as state, cv.createdAt as created_at')
             ->from(CredentialVersion::class, 'cv')
+            ->join('cv.submission', 'cs')
             ->andWhere('cv.createdAt >= :from AND cv.createdAt <= :to')
             ->andWhere('cv.state IN (:states)')
+            ->andWhere($this->orgScopeExistsSubquery('cs.practitioner', $orgUnitId))
             ->setParameter('from', $from)->setParameter('to', $to)
             ->setParameter('states', ['SUBMITTED', 'APPROVED'])
             ->orderBy('cv.createdAt', 'ASC')
@@ -183,11 +189,14 @@ class AnalyticsService
         $avgTurn = count($hours) > 0 ? array_sum($hours) / count($hours) : 0.0;
 
         $totalSlots = (int) $this->entityManager->createQueryBuilder()->select('COUNT(s.id)')->from(AppointmentSlot::class, 's')
+            ->join('s.practitioner', 'p')
             ->andWhere('s.startAt >= :from AND s.startAt <= :to')
+            ->andWhere($this->orgScopeExistsSubquery('p', $orgUnitId))
             ->setParameter('from', $from)->setParameter('to', $to)->getQuery()->getSingleScalarResult();
         $bookedSlots = (int) $this->entityManager->createQueryBuilder()->select('COUNT(a.id)')->from(Appointment::class, 'a')
             ->andWhere('a.state = :state')->setParameter('state', 'CONFIRMED')
             ->andWhere('a.bookedAt >= :from AND a.bookedAt <= :to')
+            ->andWhere($this->orgScopeExistsSubquery('a.practitioner', $orgUnitId))
             ->setParameter('from', $from)->setParameter('to', $to)->getQuery()->getSingleScalarResult();
 
         $questionCreated = (int) $this->entityManager->createQueryBuilder()->select('COUNT(q.id)')->from(Question::class, 'q')
@@ -201,6 +210,7 @@ class AnalyticsService
             ->select('f.name as firm_name, COUNT(p.id) as practitioner_count')
             ->from(Practitioner::class, 'p')->join('p.firm', 'f')
             ->andWhere('p.status = :status')->setParameter('status', 'ACTIVE')
+            ->andWhere($this->orgScopeConditionForFirmAlias('f', $orgUnitId))
             ->groupBy('f.id')->getQuery()->getArrayResult();
 
         $resubmissionRequested = (int) $this->entityManager->createQueryBuilder()
@@ -209,6 +219,7 @@ class AnalyticsService
             ->join(CredentialVersion::class, 'cv', 'WITH', 'cv.submission = cs')
             ->andWhere('cv.state = :state')
             ->andWhere('cv.createdAt >= :from AND cv.createdAt <= :to')
+            ->andWhere($this->orgScopeExistsSubquery('cs.practitioner', $orgUnitId))
             ->setParameter('state', 'RESUBMISSION_REQUESTED')
             ->setParameter('from', $from)
             ->setParameter('to', $to)
@@ -220,6 +231,7 @@ class AnalyticsService
             ->join(CredentialVersion::class, 'cvRequest', 'WITH', 'cvRequest.submission = cs')
             ->andWhere('cvRequest.state = :requested')
             ->andWhere('cs.currentState = :approved')
+            ->andWhere($this->orgScopeExistsSubquery('cs.practitioner', $orgUnitId))
             ->setParameter('requested', 'RESUBMISSION_REQUESTED')
             ->setParameter('approved', 'APPROVED')
             ->getQuery()->getSingleScalarResult();
@@ -236,6 +248,7 @@ class AnalyticsService
             ->select('COUNT(p.id)')
             ->from(Practitioner::class, 'p')
             ->andWhere('p.createdAt >= :from AND p.createdAt <= :to')
+            ->andWhere($this->orgScopeExistsSubquery('p', $orgUnitId))
             ->setParameter('from', $from)
             ->setParameter('to', $to)
             ->getQuery()->getSingleScalarResult();
@@ -338,5 +351,28 @@ class AnalyticsService
                 ->getQuery()->getSingleScalarResult(),
             default => throw new ApiException('Unsupported trend metric', 400),
         };
+    }
+
+    private function orgScopeExistsSubquery(string $practitionerExpression, ?int $orgUnitId): string
+    {
+        if ($orgUnitId === null) {
+            return '1 = 1';
+        }
+
+        return sprintf(
+            'EXISTS (SELECT 1 FROM %s p_org JOIN p_org.firm f_org WHERE p_org = %s AND f_org.orgUnit = %d)',
+            Practitioner::class,
+            $practitionerExpression,
+            $orgUnitId
+        );
+    }
+
+    private function orgScopeConditionForFirmAlias(string $firmAlias, ?int $orgUnitId): string
+    {
+        if ($orgUnitId === null) {
+            return '1 = 1';
+        }
+
+        return sprintf('%s.orgUnit = %d', $firmAlias, $orgUnitId);
     }
 }

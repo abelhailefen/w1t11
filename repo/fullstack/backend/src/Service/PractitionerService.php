@@ -64,7 +64,7 @@ class PractitionerService
         ];
     }
 
-    public function create(array $payload): Practitioner
+    public function create(array $payload, User $actor): Practitioner
     {
         $firm = $this->findFirmOrFail((int) $payload['firm_id']);
         $now = new \DateTimeImmutable();
@@ -77,6 +77,7 @@ class PractitionerService
             ->setContactEmail($payload['contact_email'] ?? null)
             ->setContactPhone($payload['contact_phone'] ?? null)
             ->setStatus(isset($payload['status']) ? PractitionerStatus::from($payload['status']) : PractitionerStatus::ACTIVE)
+            ->setCreatedBy($actor)
             ->setCreatedAt($now)
             ->setUpdatedAt($now);
 

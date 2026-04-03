@@ -100,6 +100,14 @@ class AppointmentController extends ApiController
     #[OA\Post(path: '/api/v1/appointments/slots/generate', tags: ['Scheduling'], security: [['Bearer' => []]], responses: [new OA\Response(response: 200, description: 'Slots generated')])]
     public function generateSlots(Request $request): JsonResponse
     {
+        $user = $this->requireUser();
+        if ($user instanceof JsonResponse) {
+            return $user;
+        }
+        if ($user->getRole()->value !== 'ROLE_SYSTEM_ADMIN') {
+            return $this->error('System admin role required', 403);
+        }
+
         $payload = json_decode($request->getContent(), true) ?? [];
         try {
             $created = $this->slotGenerationService->generate((string) $payload['date_from'], (string) $payload['date_to'], isset($payload['practitioner_id']) ? (int) $payload['practitioner_id'] : null);
