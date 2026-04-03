@@ -5,6 +5,15 @@
 
 set -e
 
+if ! command -v docker >/dev/null 2>&1 || ! docker version >/dev/null 2>&1; then
+  if command -v docker.exe >/dev/null 2>&1; then
+    docker() { docker.exe "$@"; }
+  else
+    echo "docker command is required"
+    exit 1
+  fi
+fi
+
 echo "=== Running PHP Unit Tests ==="
 docker compose exec -T -e APP_ENV=test -e APP_DEBUG=1 backend php bin/phpunit --testsuite unit
 
